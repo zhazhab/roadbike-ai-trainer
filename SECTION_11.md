@@ -1,10 +1,18 @@
 # Section 11 — AI Coach Protocol
 
-**Protocol Version:** 11.43  
-**Last Updated:** 2026-04-30
+**Protocol Version:** 11.44
+**Last Updated:** 2026-06-30
 **License:** [MIT](https://opensource.org/licenses/MIT)
 
 ### Changelog
+
+**v11.44 — C20/FTP Development Track Integration:**
+- New Section 11 B C20/FTP specialization exception: when the athlete's explicit goal is raising C20, FTP, MLSS, or threshold TTE, plans may enter `specialization_mode: "c20_ftp"` and use short threshold-emphasized or pyramidal blocks instead of strict 80/20, provided RI/HRV/ACWR/readiness/completion gates remain green
+- New C20/FTP composition rules: prioritize `FTP-TTE-*`, `FTP-OU-*`, `VO2-CEIL-*`, `FTP-FATIGUE-*`, and `FUEL-*` templates; `FTP-FATIGUE-*` replaces the long ride or one structured session and must not become a third weekly hard day
+- Audit metadata extended with `specialization_mode`, `target_metric`, and `session_template`
+- Workout Reference Interface now uses specialization metadata (`target_metric`, `progression_level`, `requires_freshness`, `fueling_target_g_h`) when present
+- Workout Reference Library bumped to v0.7 with a 12-week C20/FTP Development Track, 13 new templates, C20 weekly pattern, C20 block progression, decision-matrix rows, and fueling-practice guidance
+- Docs-only; no sync.py schema changes
 
 **v11.43 — Body Weight Handling (block W/kg + weekly trend):**
 - New `current_status.weight` block in `latest.json` carrying gated weight signals: `weight_latest_kg`, `weight_latest_date`, `wkg_current`, `wkg_ftp_source` (+ optional `ftp_setting_date`), `wkg_block_start` / `wkg_block_end` / `wkg_block_delta`, `weight_7d_avg_kg`, `weight_28d_slope_kg_per_week`, plus `display.{weight_latest, weight_7d_avg, weight_28d_slope_per_week}` ({value, unit} pairs in the athlete's preferred weight unit). Each field emits only when its data-density gate is satisfied; failed-gate fields are absent from the JSON, and the AI layer omits the corresponding report section silently with no "insufficient data" boilerplate
@@ -2878,6 +2886,17 @@ Generated plans must explicitly state the detected phase in their audit header.
 - **Z1–Z2** time ≥ 75 % of total duration.  
 - Over-threshold accumulation outside these bounds triggers automatic plan validation error.
 
+**C20/FTP specialization exception:**
+When the athlete's explicit goal is raising **C20, FTP, MLSS, or threshold time-to-exhaustion**, the plan may enter `"specialization_mode": "c20_ftp"`. In this mode, short blocks may be pyramidal or threshold-emphasized rather than strictly polarized, because C20 development requires repeatable threshold TiZ, over-under tolerance, VO2 ceiling support, and fatigue-resistant threshold expression.
+
+This exception is valid only when all gates below are satisfied:
+- Readiness decision is `"go"` or a low-risk `"modify"` that still permits controlled threshold work
+- ACWR remains within the safe progression range (target 0.8–1.3, never ≥1.5)
+- RI is ≥0.8 and HRV is within 10% of baseline unless the plan explicitly deloads
+- The athlete completed the prior threshold session without >3–5% power fade or premature termination
+
+If any gate fails, the plan must reduce TiZ, shift to tempo/sweet spot, or prescribe Z1–Z2 endurance. It must not raise intensity to compensate.
+
 ---
 
 ### 4 — Session Composition Rules
@@ -2885,6 +2904,13 @@ Generated plans must explicitly state the detected phase in their audit header.
 - **1 long Z2 durability ride**  
 - Remaining sessions = Z1–Z2 recovery or aerobic maintenance  
 - Back-to-back high-intensity days prohibited unless **TSB > 0 and RI ≥ 0.85**
+
+**C20/FTP specialization composition:**
+When `"specialization_mode": "c20_ftp"` is active, the two structured sessions should usually be selected from the C20/FTP Development Track in the Workout Reference Library:
+- One threshold/TTE or over-under session (`FTP-TTE-*`, `FTP-OU-*`)
+- One VO2 ceiling, threshold/TTE, or fatigue-resistance session (`VO2-CEIL-*`, `FTP-TTE-*`, `FTP-FATIGUE-*`) depending on block phase
+
+The weekly long ride remains Z2 by default. `FTP-FATIGUE-*` may replace the long ride or one structured session in late-block weeks, but it must not be added as a third hard day. Fueling-practice templates (`FUEL-*`) are overlays or endurance sessions, not extra intensity.
 
 ---
 
@@ -2910,6 +2936,9 @@ Every generated or modified plan must embed machine-readable metadata for audit 
   "load_target_TSS": 520,
   "volume_hours": 15.2,
   "polarization_ratio": 0.81,
+  "specialization_mode": null,
+  "target_metric": null,
+  "session_template": "SS-5",
   "progression_vector": "duration",
   "load_variance": false,
   "validation_protocol": "URF_v5.1",
@@ -2939,6 +2968,7 @@ When a plan requires a structured session (per Section 4), the AI must select fr
 
 **Selection rules:**
 - Match target adaptation (Sweet Spot, VO₂max, Endurance, etc.) to the session slot identified by the plan.
+- When `"specialization_mode": "c20_ftp"` is active, prefer templates whose `target_metric` matches `c20`, `ftp`, `tte`, `vo2_ceiling`, `fatigue_resistance`, or `fueling` before falling back to generic sweet spot / threshold / VO2max templates.
 - Use Section 11 A readiness outputs (TSB, RI, HRV trend) to choose the appropriate format variant and intensity level within that adaptation category.
 - Apply the Reference Library's session sequencing rules when placing sessions within the microcycle.
 - Warm-up and cool-down structures must follow the Reference Library's WU/CD protocols unless the athlete has documented personal preferences.
@@ -2947,7 +2977,7 @@ When a plan requires a structured session (per Section 4), the AI must select fr
 - The AI must not invent session structures absent from the Reference Library.
 - If no suitable session template exists for the required adaptation, the AI must flag this as a gap rather than improvise.
 - All workout selections must be traceable in the audit metadata (Section 6) via a `"session_template"` field referencing the template's YAML `id` (e.g., `"session_template": "SS-5"`).
-- Each template includes machine-readable YAML metadata (`id`, `domain`, `is_hard_session`, `work_minutes`, `est_total_minutes`) for deterministic selection and scheduling.
+- Each template includes machine-readable YAML metadata (`id`, `domain`, `is_hard_session`, `work_minutes`, `est_total_minutes`) for deterministic selection and scheduling. Specialization templates may also include `target_metric`, `progression_level`, `requires_freshness`, and `fueling_target_g_h`; these fields must be used when present.
 
 ---
 
@@ -3160,6 +3190,9 @@ This subsection defines the formal self-validation and audit metadata structure 
 | `load_target_TSS`     | number  | Target weekly TSS                                                                   |
 | `volume_hours`        | number  | Target weekly training hours                                                        |
 | `polarization_ratio`  | number  | Target polarization (≈ 0.8)                                                         |
+| `specialization_mode` | string/null | Optional specialization mode; currently `"c20_ftp"` or null                         |
+| `target_metric`       | string/null | Optional specialization target (`c20`, `ftp`, `tte`, `vo2_ceiling`, `fatigue_resistance`, `fueling`) |
+| `session_template`    | string  | Workout Reference Library template id selected for the key session                  |
 | `progression_vector`  | string  | Active progression type (duration/intensity/environmental)                          |
 | `load_variance`       | boolean | Whether volume exceeds ±10% baseline                                                |
 | `validation_protocol` | string  | Framework version (e.g., "URF_v5.1")                                                |

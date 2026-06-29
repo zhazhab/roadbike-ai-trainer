@@ -21,12 +21,13 @@ Section 11 B §8 defines the formal interface between the plan protocol and this
 
 **`WORKOUT_REFERENCE.md`** — The full library, containing:
 
-1. **Workout Type Catalog** — 26 session templates across 6 adaptation categories (Endurance, Tempo/Sweet Spot/Threshold, VO₂max, Anaerobic, Race-Specific, Strength-Endurance)
-2. **Warm-Up & Cool-Down Protocols** — Standard, progressive, abbreviated, and intensity-specific variants
-3. **Session Sequencing Rules** — Spacing, ordering, and non-cycling integration
-4. **Block Periodisation Sketches** — Build:deload ratios, volume trajectories, phase transitions
-5. **Interval Format Selection Guide** — Decision matrix, progression logic, format change criteria
-6. **Adaptation & Customisation Notes** — How to modify for your needs
+1. **Workout Type Catalog** — 39 session templates across the base catalog plus C20/FTP specialization
+2. **C20/FTP Development Track** — 13 specialization templates for C20 testing, threshold TTE, over-unders, VO₂ ceiling, fatigue-resistant threshold work, and fueling practice
+3. **Warm-Up & Cool-Down Protocols** — Standard, progressive, abbreviated, and intensity-specific variants
+4. **Session Sequencing Rules** — Spacing, ordering, C20 specialization patterns, and non-cycling integration
+5. **Block Periodisation Sketches** — Build:deload ratios, volume trajectories, phase transitions, and a 12-week C20/FTP specialization block
+6. **Interval Format Selection Guide** — Decision matrix, progression logic, format change criteria
+7. **Adaptation & Customisation Notes** — How to modify for your needs
 
 ## Customisation
 
@@ -41,4 +42,4 @@ As long as your sessions follow the template format (name, zones, structure, dur
 
 ## Version
 
-Current: **0.5.0**
+Current: **0.7.0**

@@ -1,8 +1,8 @@
 # Section 11 — Workout Reference Library
 
-**Version:** 0.6  
+**Version:** 0.7
 **Companion to:** Section 11 B — AI Training Plan Protocol  
-**Last updated:** 2026-02-28
+**Last updated:** 2026-06-29
 
 ---
 
@@ -21,6 +21,7 @@ This document is a **library of session templates for inspiration**, not a rigid
 - **This is a living catalog.** Athletes and coaches should adapt, extend, or replace templates to match individual needs, equipment, and sport demands.
 - **Templates are inspiration, not prescription.** The AI should use these as structural references, then adjust interval count, duration, rest periods, and intensity to match the athlete's current state. A Sweet Spot 3x15 might become 3x12 for a fatigued athlete or 3x18 for a fresh one approaching peak.
 - **Optional/advanced templates are clearly marked.** Templates flagged as *(Optional)* or *(Advanced)* are not necessary for every athlete and should not be prescribed by default. The AI should only select these when the athlete's goals, phase, and readiness specifically warrant them.
+- **C20/FTP goals get a dedicated track.** When the athlete's explicit goal is raising 20-minute power, FTP, MLSS, or threshold TTE, prefer the C20/FTP Development Track (§1G) over generic sweet spot or VO2max templates. Road-race tactics, sprint repeatability, and criterium specificity remain secondary unless the athlete's stated event demands require them.
 
 ---
 
@@ -30,12 +31,19 @@ Each entry includes: session name, target adaptation, zone targets, interval str
 
 **Duration note:** All durations listed are work time only, excluding warm-up and cool-down. For scheduling purposes, add 15–25 min for WU-STD or WU-PROG and 10–15 min for CD-STD. Total session time = listed duration + WU + CD.
 
-**Template metadata:** Each template includes a machine-readable YAML block with the following fields:
+**Template metadata:** Every template includes a machine-readable YAML block with the baseline fields below:
 - `id` — stable template code, used in the `session_template` audit field (Section 11 B §6/§8)
 - `domain` — adaptation category: `endurance`, `tempo`, `sweet_spot`, `threshold`, `vo2max`, `anaerobic`, `race_specific`, `strength_endurance`
 - `is_hard_session` — `true` if the session counts toward the 48h spacing rule (§3.1) and takes a structured session slot per Section 11 B §4
 - `work_minutes` — approximate work duration (midpoint of range, excludes WU/CD for structured sessions; includes ramp-in/ramp-out for endurance sessions)
-- `est_total_minutes` — estimated total session time. For structured sessions (§1B–1F): includes WU/CD. For endurance sessions (§1A): same as `work_minutes` because the ramp-in/ramp-out is built into the ride, not a separate WU/CD
+- `est_total_minutes` — estimated total session time. For structured sessions (§1B–1G): includes WU/CD. For endurance sessions (§1A): same as `work_minutes` because the ramp-in/ramp-out is built into the ride, not a separate WU/CD
+
+Specialization templates include these extended fields. For legacy templates that omit them, consumers should treat `target_metric` as the template's `domain`, `progression_level` as `null`, `requires_freshness` as `medium` for hard sessions / `low` for non-hard sessions, and `fueling_target_g_h` as `null`.
+
+- `target_metric` — primary adaptation target. Values used by C20/FTP templates: `c20`, `ftp`, `tte`, `vo2_ceiling`, `fatigue_resistance`, `fueling`
+- `progression_level` — intended progression stage: `intro`, `build`, `peak`, `retest`
+- `requires_freshness` — `low`, `medium`, or `high`, used to avoid placing demanding sessions on marginal readiness days
+- `fueling_target_g_h` — planned carbohydrate practice target in grams/hour, or `null` when the session does not prescribe fueling practice
 
 ---
 
@@ -456,9 +464,277 @@ est_total_minutes: 75
 
 ---
 
+### 1G. C20 / FTP Development Track
+
+**Target adaptation:** Raise 20-minute power, FTP/MLSS, threshold time-to-exhaustion, and the ability to express threshold power when moderately fatigued.
+
+This track is for road cyclists whose primary stated goal is C20/FTP development rather than criterium sprinting, repeated attacks, or event-specific road-race tactics. It uses a 12-week default shape: baseline test → threshold capacity → VO2 ceiling → C20-specific integration → retest. The AI must still adapt session count and duration to the athlete's available time, readiness, and current training history.
+
+**Distribution note:** C20/FTP specialization may temporarily look pyramidal or threshold-emphasized rather than strictly polarized. This is allowed only when the athlete's explicit goal is C20/FTP and Section 11 readiness/load gates remain green. It is not permission to add a third weekly hard day by default.
+
+**Default 12-week map for 8–10 h/week cyclists:**
+
+| Weeks | Focus | Primary templates | Notes |
+|-------|-------|-------------------|-------|
+| 1 | Baseline | TEST-C20 | Establish pacing anchor; do not stack another hard test that week |
+| 2–4 | Threshold capacity | FTP-TTE-1, FTP-TTE-2, FTP-OU-1 | Build repeatable TiZ before raising intensity |
+| 5 | Deload / absorb | AE-1, AE-2, FUEL-1 | Keep volume easy; no new threshold progression |
+| 6–8 | VO2 ceiling + threshold | VO2-CEIL-1/2 + FTP-TTE-2/3 | One VO2-focused day, one threshold/TTE day |
+| 9–11 | C20 integration | FTP-TTE-3/4, FTP-FATIGUE-1/2, FTP-OU-2 | Practice late-session threshold expression |
+| 12 | Retest | TEST-C20 | Reduce load 3–5 days before the test |
+
+#### TEST-C20: 20-Minute Power Baseline / Retest
+```yaml
+id: TEST-C20
+domain: threshold
+is_hard_session: true
+work_minutes: 20
+est_total_minutes: 75
+target_metric: c20
+progression_level: retest
+requires_freshness: high
+fueling_target_g_h: null
+```
+- **Zones:** Full 20-minute best effort; pacing starts around current FTP/upper Z4 and finishes as hard as sustainable
+- **Structure:** WU-STD plus 3 × 1 min Z4/Z5 primers with full recovery, 5 min easy, then 20 min maximal sustainable effort, CD-STD
+- **Duration:** 20 min test effort, ~70–80 min total
+- **Coaching notes:** Use this as the anchor for C20/FTP blocks. Pacing should be controlled for the first 5 min, settled from minutes 5–15, and emptied progressively from minute 15 onward. Do not chase an early power spike. Record average power, HR response, RPE, cadence, and whether power faded in the final 5 min.
+- **Failure / downgrade rule:** If the athlete starts too hard and fades >5 % from first half to second half, do not update FTP from the result. Repeat after at least 5–7 days of normal training or use the result only as a pacing lesson.
+- **Select when:** Week 1 baseline, Week 12 retest, or after a complete 8–12 week C20/FTP block. Requires fresh legs: no hard session in the prior 48 h.
+
+#### FTP-TTE-1: Threshold Foundation 2×20
+```yaml
+id: FTP-TTE-1
+domain: threshold
+is_hard_session: true
+work_minutes: 40
+est_total_minutes: 75
+target_metric: tte
+progression_level: intro
+requires_freshness: medium
+fueling_target_g_h: null
+```
+- **Zones:** Low-to-mid Z4, or 95–100 % of current FTP when using percent targets
+- **Structure:** 2 × 20 min with 6–8 min Z1 recovery
+- **Duration:** 40 min threshold TiZ
+- **Coaching notes:** The goal is repeatable threshold work, not a test. The second interval should be within 3 % of the first at similar RPE. If HR drifts sharply while power is stable, flag durability/fueling/heat context rather than forcing progression.
+- **Failure / downgrade rule:** If interval 2 fades >3 % or RPE exceeds 9/10 before the final 5 min, next session becomes 3 × 12–15 min or SS-1, not a harder threshold progression.
+- **Select when:** First threshold-specific C20 block, or when moving from sweet spot into true FTP work.
+
+#### FTP-TTE-2: Threshold Capacity 3×15
+```yaml
+id: FTP-TTE-2
+domain: threshold
+is_hard_session: true
+work_minutes: 45
+est_total_minutes: 80
+target_metric: tte
+progression_level: build
+requires_freshness: medium
+fueling_target_g_h: null
+```
+- **Zones:** Z4, controlled threshold
+- **Structure:** 3 × 15 min with 5 min Z1 recovery
+- **Duration:** 45 min threshold TiZ
+- **Coaching notes:** Accumulates more total threshold work than FTP-TTE-1 with lower psychological load per interval. Power quality across all three blocks matters more than a heroic final block.
+- **Failure / downgrade rule:** If block 3 fades >3 % from block 1, repeat the same format once before progressing. If it fails twice, drop to SS-5 or SS-1 for one week.
+- **Select when:** Main build template for C20/FTP development after FTP-TTE-1 is repeatable.
+
+#### FTP-TTE-3: High-TiZ Threshold 3×20
+```yaml
+id: FTP-TTE-3
+domain: threshold
+is_hard_session: true
+work_minutes: 60
+est_total_minutes: 100
+target_metric: tte
+progression_level: peak
+requires_freshness: high
+fueling_target_g_h: 60
+```
+- **Zones:** Low Z4 / controlled FTP, not above-threshold
+- **Structure:** 3 × 20 min with 6–8 min Z1 recovery
+- **Duration:** 60 min threshold TiZ
+- **Coaching notes:** This is a demanding TTE expansion session for athletes already tolerating 40–45 min threshold TiZ. Use conservative targets and fuel it like a key workout. It should feel controlled until the final interval.
+- **Failure / downgrade rule:** If interval 2 is already failing, stop after 2 intervals and log it as FTP-TTE-1. Do not force interval 3. Next week repeats FTP-TTE-2 or deloads depending on readiness.
+- **Select when:** Late C20 block, full "go" readiness, and previous FTP-TTE-2 completion was stable.
+
+#### FTP-TTE-4: Continuous Threshold Extension
+```yaml
+id: FTP-TTE-4
+domain: threshold
+is_hard_session: true
+work_minutes: 40
+est_total_minutes: 75
+target_metric: c20
+progression_level: peak
+requires_freshness: high
+fueling_target_g_h: 60
+```
+- **Zones:** Upper sweet spot to FTP; final 10 min may rise toward target C20 effort if controlled
+- **Structure:** 1 × 35–45 min continuous controlled effort
+- **Duration:** 35–45 min continuous work
+- **Coaching notes:** Bridges repeat-interval threshold work into real TTE. The target is even pacing and mental control, not a max test. If the athlete can hold a steady 40–45 min effort, a later C20 test becomes less fragile.
+- **Failure / downgrade rule:** If power decays >5 % after minute 20, end the work block and return to Z2. Next prescription should be FTP-TTE-1 or FTP-OU-1, not another continuous extension.
+- **Select when:** Final 3–4 weeks before C20 retest, after repeat threshold sessions are stable.
+
+#### FTP-OU-1: C20 Over-Unders
+```yaml
+id: FTP-OU-1
+domain: threshold
+is_hard_session: true
+work_minutes: 40
+est_total_minutes: 75
+target_metric: ftp
+progression_level: build
+requires_freshness: medium
+fueling_target_g_h: null
+```
+- **Zones:** Alternating high Z4 / low Z5 over, low Z4 under
+- **Structure:** 2 × 16–20 min blocks. Inside each block: 2 min just under FTP / 1 min slightly over FTP, repeating. 6–8 min Z1 recovery between blocks.
+- **Duration:** 32–40 min of work
+- **Coaching notes:** Trains lactate clearance and the ability to recover while still riding near threshold. The "over" is controlled; if it becomes a repeated VO2max effort, the target is too high.
+- **Failure / downgrade rule:** If overs cause uncontrolled power collapse in the under segments, reduce the over target first. If still failing, switch to FTP-TTE-1.
+- **Select when:** Middle of a C20 block once steady threshold work is established.
+
+#### FTP-OU-2: Late-Block Over-Under Sustain
+```yaml
+id: FTP-OU-2
+domain: threshold
+is_hard_session: true
+work_minutes: 45
+est_total_minutes: 85
+target_metric: c20
+progression_level: peak
+requires_freshness: high
+fueling_target_g_h: 60
+```
+- **Zones:** Under segments at low/mid Z4, over segments at high Z4/low Z5
+- **Structure:** 3 × 12–15 min. Inside each block: 3 min under / 1 min over, repeating. 5 min Z1 recovery between blocks.
+- **Duration:** 36–45 min of work
+- **Coaching notes:** A C20-specific sharpening session. Longer under segments teach the athlete to keep pressure on after surges, while brief overs simulate the cost of slight pacing errors in a 20-minute effort.
+- **Failure / downgrade rule:** If the athlete cannot keep under segments in Z4 after the first block, stop the over-under work and ride Z2. Next key session returns to FTP-OU-1 or FTP-TTE-2.
+- **Select when:** Weeks 9–11 of a C20 block, not within 5 days of TEST-C20.
+
+#### FTP-FATIGUE-1: Threshold Finish After Z2
+```yaml
+id: FTP-FATIGUE-1
+domain: threshold
+is_hard_session: true
+work_minutes: 105
+est_total_minutes: 105
+target_metric: fatigue_resistance
+progression_level: build
+requires_freshness: medium
+fueling_target_g_h: 60
+```
+- **Zones:** Z2 base, then upper Z3/low Z4 finish
+- **Structure:** 75–90 min Z2, then 1 × 12–20 min upper sweet spot to FTP, then 10 min Z1
+- **Duration:** 90–120 min total
+- **Coaching notes:** Teaches the athlete to express near-threshold power after aerobic work without turning the ride into a race. Fuel from the first hour. Compare HR:power ratio in the finish block against fresh threshold sessions.
+- **Failure / downgrade rule:** If Z2 already produces high drift or RPE is elevated before the finish block, skip the finish block and complete AE-2. Do not "salvage" with a shorter harder effort.
+- **Select when:** Late build weeks when durability is the limiter for C20/FTP expression.
+
+#### FTP-FATIGUE-2: Long Ride Threshold Finish
+```yaml
+id: FTP-FATIGUE-2
+domain: threshold
+is_hard_session: true
+work_minutes: 150
+est_total_minutes: 150
+target_metric: fatigue_resistance
+progression_level: peak
+requires_freshness: high
+fueling_target_g_h: 75
+```
+- **Zones:** Predominantly Z2, finish with controlled Z4 work
+- **Structure:** 120–150 min Z2 with 2 × 10–12 min low Z4 in the final 45 min, 6 min Z1/Z2 between efforts
+- **Duration:** 150–180 min total
+- **Coaching notes:** Advanced fatigue-resistance session for C20/FTP riders with adequate base volume. This replaces the weekly long ride or one structured session; it must not be added as a third hard day.
+- **Failure / downgrade rule:** If fueling is missed, heat stress is high, or decoupling is already >5 % before the final 45 min, keep the remainder Z2 and log the skipped finish as a correct modification.
+- **Select when:** Weeks 9–11, full "go" readiness, and long Z2 rides are already routine.
+
+#### VO2-CEIL-1: C20 Ceiling Long Intervals
+```yaml
+id: VO2-CEIL-1
+domain: vo2max
+is_hard_session: true
+work_minutes: 24
+est_total_minutes: 70
+target_metric: vo2_ceiling
+progression_level: build
+requires_freshness: high
+fueling_target_g_h: null
+```
+- **Zones:** Z5, aiming for strong but repeatable 4–5 min power
+- **Structure:** 5–6 × 4 min with 4 min Z1 recovery
+- **Duration:** 20–24 min of work
+- **Coaching notes:** Raises the aerobic ceiling that supports future C20 improvement. Use in a 4–6 week VO2 emphasis window, not all year. Stop if power drops >5 % across intervals.
+- **Failure / downgrade rule:** If interval 3 fails, end VO2 work and ride Z2. Next VO2 session becomes VO2-4 or fewer reps, not a harder format.
+- **Select when:** Weeks 6–8 of a C20 block, paired with one threshold/TTE day that week.
+
+#### VO2-CEIL-2: C20 Ceiling Short-Shorts
+```yaml
+id: VO2-CEIL-2
+domain: vo2max
+is_hard_session: true
+work_minutes: 18
+est_total_minutes: 65
+target_metric: vo2_ceiling
+progression_level: build
+requires_freshness: high
+fueling_target_g_h: null
+```
+- **Zones:** Z5–Z6 on, Z1 off
+- **Structure:** 3 sets × 8–10 repetitions of 30 s on / 15 s off, 5 min Z1 between sets
+- **Duration:** 12–15 min of work, 18–22.5 min set time
+- **Coaching notes:** A lower-barrier VO2 ceiling option for athletes who struggle with long VO2 intervals. It supports C20 by increasing headroom, but it should not replace threshold/TTE work for the whole block.
+- **Failure / downgrade rule:** If set 2 cannot stay near target, stop after set 2 and use VO2-2 next time. Do not add extra easy-hard surges after failure.
+- **Select when:** VO2 ceiling block, limited time, or when VO2-CEIL-1 is psychologically difficult.
+
+#### FUEL-1: Long Ride Fueling Practice
+```yaml
+id: FUEL-1
+domain: endurance
+is_hard_session: false
+work_minutes: 150
+est_total_minutes: 150
+target_metric: fueling
+progression_level: build
+requires_freshness: low
+fueling_target_g_h: 75
+```
+- **Zones:** Z2
+- **Structure:** 120–180 min Z2 while practicing 60–90 g carbohydrate/hour and planned sodium/fluid intake
+- **Duration:** 2–3 h
+- **Coaching notes:** The training target is gut tolerance and stable energy availability, not extra intensity. Start at the athlete's known comfortable intake and progress gradually toward 60–90 g/h. Record GI comfort, energy stability, and whether fueling began in the first 20 min.
+- **Failure / downgrade rule:** If GI discomfort appears, reduce intake rate and keep the ride easy. Do not add intensity to compensate for lower carbohydrate intake.
+- **Select when:** Weekly long ride in any C20/FTP block, especially before fatigue-resistance sessions.
+
+#### FUEL-2: Quality Session Fueling Practice
+```yaml
+id: FUEL-2
+domain: endurance
+is_hard_session: false
+work_minutes: 90
+est_total_minutes: 90
+target_metric: fueling
+progression_level: build
+requires_freshness: low
+fueling_target_g_h: 60
+```
+- **Zones:** Paired with the day's planned quality session; fueling target applies to the whole session
+- **Structure:** Add planned carbohydrate intake to FTP-TTE, FTP-OU, VO2-CEIL, or long endurance sessions lasting >75 min
+- **Duration:** Overlay template, not a standalone intensity workout
+- **Coaching notes:** For C20/FTP development, high-quality threshold work should not be under-fueled. Use 60–75 g/h for most key sessions; 90 g/h is optional only after tolerance is established. Ultra-high carbohydrate intake above 90 g/h is experimental for advanced athletes and must not be the default for recreational riders.
+- **Failure / downgrade rule:** If fueling is missed before a key threshold session, keep the workout conservative and avoid progressing TiZ that day.
+- **Select when:** Any key C20/FTP session over 75 min, especially FTP-TTE-3/4 and FTP-FATIGUE sessions.
+
+---
+
 ## 2. Warm-Up & Cool-Down Protocols
 
-All structured sessions (§1B, 1C, 1D, 1E, 1F) require warm-up and cool-down. Endurance sessions (§1A) should use the ramp-in/ramp-out pattern described in the §1A pacing note — 10–15 min easing into target power at the start and stepping down at the end. This replaces a formal WU/CD and is recommended for all endurance rides regardless of duration.
+All structured sessions (§1B, 1C, 1D, 1E, 1F, 1G) require warm-up and cool-down. Endurance sessions (§1A) should use the ramp-in/ramp-out pattern described in the §1A pacing note — 10–15 min easing into target power at the start and stepping down at the end. This replaces a formal WU/CD and is recommended for all endurance rides regardless of duration.
 
 ### Standard Warm-Up (WU-STD)
 **Duration:** 15–20 min  
@@ -493,6 +769,8 @@ All structured sessions (§1B, 1C, 1D, 1E, 1F) require warm-up and cool-down. En
 ### Intensity-Specific Warm-Up Modifications
 - **Before VO₂max sessions (VO2-1 through VO2-5):** Use WU-STD or WU-PROG (omitting the settling period) and extend to include 1 × 1 min at Z4 (threshold primer). Total WU: ~20–22 min.
 - **Before anaerobic/sprint sessions (AN-1 through AN-3):** Use WU-STD or WU-PROG and add 2 × 10 s Z6 sprints with full recovery after activation. Total WU: ~22–25 min.
+- **Before TEST-C20:** Use WU-STD, then add 3 × 1 min Z4/Z5 primers with 2–3 min easy between primers. Total WU: ~25–30 min. Do not use WU-SHORT before a C20 test.
+- **Before FTP-TTE / FTP-OU sessions:** WU-PROG is preferred because a gradual cardiovascular ramp improves threshold pacing. Use WU-STD when time is constrained.
 
 ### Standard Cool-Down (CD-STD)
 **Duration:** 10–15 min  
@@ -532,6 +810,7 @@ These rules govern the placement of sessions within a microcycle (training week)
 - **Long ride should not follow a VO₂max session** without at least one recovery day between. Sequencing: VO₂max → rest/easy → long ride, or long ride → rest/easy → VO₂max.
 - **Sprint/anaerobic work (AN-1 through AN-3)** should be placed early in the week when freshness is highest, or at least 48 h before any other hard session.
 - **Threshold sessions (TH-1, TH-2)** carry higher recovery cost than sweet spot — treat like VO₂max for sequencing purposes when placing alongside other hard sessions.
+- **C20/FTP templates (TEST-C20, FTP-TTE-*, FTP-OU-*, FTP-FATIGUE-*)** count as hard sessions except FUEL overlays. In C20 specialization, keep the default weekly ceiling at two quality days. Increase Z2 volume before adding a third hard day.
 - **Strength-endurance sessions (SE-1, SE-2)** generate significant muscular fatigue. Do not place before VO₂max work or long rides.
 
 ### 3.3 Long Ride Placement
@@ -539,6 +818,7 @@ These rules govern the placement of sessions within a microcycle (training week)
 - Should not be preceded by a hard session the day before unless the long ride is Z1-Z2 only with no late-ride efforts.
 - If the athlete trains on a Tuesday/Thursday hard day pattern, the long ride fits naturally on Saturday or Sunday.
 - **AE-6 (fast-finish)** counts as a hard session for spacing purposes due to the Z3 final block.
+- **FTP-FATIGUE-1/2** replace the long ride or one structured session for that week. They must not be added on top of the standard two hard days.
 
 ### 3.4 Non-Cycling Load Integration
 - **Strength sessions:** Place on the same day as a hard cycling session (after cycling) or on an easy/rest day. Do not place strength the day before a VO₂max session.
@@ -572,6 +852,20 @@ These rules govern the placement of sessions within a microcycle (training week)
 | Fri | AE-4 or Rest | Recovery |
 | Sat | AE-3 | Long ride |
 | Sun | AE-1 | Easy endurance |
+
+**C20/FTP Specialization — 8–10 h/week Pattern:**
+
+| Day | Session | Notes |
+|-----|---------|-------|
+| Mon | Rest | Full rest after weekend load |
+| Tue | FTP-TTE-1/2 or FTP-OU-1 | Main C20/FTP quality day |
+| Wed | AE-1 or AE-2 | Z2 volume, no hidden tempo |
+| Thu | VO2-CEIL-1/2 or FTP-TTE-2 | Ceiling day in VO2 phase; threshold day in TTE phase |
+| Fri | Rest or AE-4 | Preserve Saturday quality |
+| Sat | AE-3, FUEL-1, or FTP-FATIGUE-1 | Long endurance; fatigue finish only when readiness is green |
+| Sun | AE-1 or Rest | Absorb the week |
+
+During C20 specialization, the Tuesday/Thursday quality slots are the primary progression levers. Saturday becomes a fatigue-resistance day only in late-block weeks and only replaces one of the other quality demands if load tolerance is marginal.
 
 ---
 
@@ -615,6 +909,19 @@ Volume changes must remain within Section 11 B §2 tolerance (±10 % of validate
 - **VO₂max response:** 2–4 weeks of dedicated VO₂max intervals for measurable improvement, but only if aerobic base is established.
 - **Implication:** Don't abandon a stimulus too early. If the athlete is responding (power stable, RPE decreasing, or power increasing at same RPE), continue the current block structure.
 
+### 4.5 C20/FTP Specialization Block
+
+Use the C20/FTP Development Track (§1G) when the athlete's explicit goal is raising C20, FTP, MLSS, or threshold TTE. The default structure for 8–10 h/week riders is:
+
+- **Week 1:** TEST-C20 baseline, then easy endurance and one moderate threshold-capacity session only if recovery is normal
+- **Weeks 2–4:** FTP-TTE and FTP-OU progression; target more repeatable TiZ before raising intensity
+- **Week 5:** Deload / absorption; keep one short controlled threshold touch or replace with AE-2 if readiness is not green
+- **Weeks 6–8:** VO2 ceiling emphasis with VO2-CEIL-1/2 plus one threshold/TTE day
+- **Weeks 9–11:** C20 integration with FTP-TTE-3/4, FTP-OU-2, or FTP-FATIGUE-1/2
+- **Week 12:** Reduce load and repeat TEST-C20
+
+Progression must stop or regress when either of these occurs: two consecutive failed threshold sessions, elevated readiness risk, or inability to fuel key sessions as planned. The next prescription should reduce TiZ, switch to tempo/sweet spot, or deload rather than increase intensity.
+
 ---
 
 ## 5. Interval Format Selection Guide
@@ -638,6 +945,11 @@ When Section 11 determines a structured session is needed, use this guide to sel
 | Time-constrained (<75 min total) | VO2-2, VO2-5, or SS-5 | High stimulus density |
 | "Modify" readiness (not full "go") | SS-4 (tempo) or AE-7 (progressive) | Reduce intensity, maintain structure |
 | Durability focus under fatigue | AE-6 (fast-finish) | Z3 work when fatigued |
+| Primary goal is C20/FTP | TEST-C20 → FTP-TTE-1/2 → VO2-CEIL-1/2 → FTP-TTE-3/4 | Establish baseline, build TiZ, raise ceiling, then integrate |
+| C20 target but threshold sessions fade late | FTP-OU-1 or FTP-TTE-2 | Clearance and repeatable pacing before harder tests |
+| C20 target with good fresh threshold but weak late-ride power | FTP-FATIGUE-1, then FTP-FATIGUE-2 | Train threshold expression under moderate fatigue |
+| Key session >75 min or late-block FTP work | FUEL-2 overlay | Protect workout quality through planned carbohydrate intake |
+| Long ride in C20/FTP block | FUEL-1 or AE-3 | Build aerobic base and fueling tolerance without extra intensity |
 | Hilly event preparation | SE-1 (low-cadence tempo) | Torque development *(optional)* |
 | Race-week activation | MIX-2 (opener) | Prime without fatigue |
 | Peak phase sprint demands | AN-3 (progressive sprint sets) | Repeated sprint under fatigue |
@@ -655,6 +967,9 @@ Before changing to a new format, progress within the current one:
 **Format-specific progression examples:**
 - VO2-2 (3×10) → VO2-5 (3×13): rep count progression within the short-short format
 - SS-5 (4×10) → SS-5 (4×12) → SS-1 (3×15) → SS-1 (2×20): duration progression across sweet spot formats
+- FTP-TTE-1 (2×20) → FTP-TTE-2 (3×15) → FTP-TTE-3 (3×20) → FTP-TTE-4 (35–45 min continuous): C20/TTE progression
+- FTP-OU-1 → FTP-OU-2: over-under progression for C20 pacing resilience
+- FUEL-1 at comfortable intake → FUEL-1/FUEL-2 at 60–90 g/h: fueling tolerance progression; >90 g/h is not a default recreational target
 - AN-2 (6 singles) → AN-3 (3×5 sets): volume and structure progression within anaerobic work
 - SS-1 → TH-1: intensity progression from sweet spot to threshold (only when FTP elevation is the specific target)
 
@@ -671,7 +986,7 @@ When the athlete has less time than the prescribed session requires, apply these
 1. **Cut cool-down first.** Reduce CD-STD to the 5 min minimum (Z1 spinning). Do not skip entirely.
 2. **Shorten warm-up second.** Switch from WU-STD/WU-PROG to WU-SHORT. Do not skip warm-up before Z4+ work.
 3. **Reduce interval count third.** Remove the last interval or set (e.g., 4×10 → 3×10, 3 sets → 2 sets). Maintain full interval duration and recovery for remaining efforts.
-4. **Shorten endurance portions last.** For sessions with Z1–Z2 base riding (MIX-1, AE-3, AN-2 embedded rides), reduce the Z1–Z2 time. Keep the structured work intact.
+4. **Shorten endurance portions last.** For sessions with Z1–Z2 base riding (MIX-1, AE-3, AN-2 embedded rides, FTP-FATIGUE-1/2), reduce the Z1–Z2 time. Keep the structured work intact unless readiness is the reason for truncation.
 5. **If total available time < 45 min:** Substitute with a time-efficient template (VO2-2, SS-5) or convert to AE-1 (short endurance). Do not attempt to compress a 90-min session into 40 min.
 6. **If total available time < 30 min:** AE-4 (active recovery) or rest. A 25-min rushed structured session has negligible training value and elevated injury risk.
 
@@ -700,7 +1015,7 @@ The catalog above is cycling-focused. For multi-sport or alternative-sport athle
 
 - This document does not replace a qualified human coach for complex situations (return from injury, chronic illness, multi-peak season planning).
 - Templates assume a healthy, injury-free athlete. Medical clearance and individual contraindications are outside the scope of this document.
-- Nutritional, sleep, and lifestyle factors significantly affect training response but are not prescribed here.
+- Nutrition is prescribed only at the workout-practice level in FUEL-1/FUEL-2. Daily diet, body-composition strategy, sleep, and lifestyle factors significantly affect training response but remain outside this library.
 
 ---
 
@@ -713,6 +1028,8 @@ The catalog above is cycling-focused. For multi-sport or alternative-sport athle
 | 0.3.0 | 2026-02-24 | Fixed dates (2025→2026). Added deload session modification rules (§4.2). Added total session duration note to catalog header. Clarified §3.2 VO₂max/SS ordering applies to close spacing, not across full week. Added race-week protocol cross-reference in §4.3. |
 | 0.4.0 | 2026-02-25 | Added time-crunch truncation rules (§5.4). Clarified AE-6 takes a hard session slot. |
 | 0.5.0 | 2026-02-25 | Added machine-readable YAML metadata to all 26 templates (id, domain, is_hard_session, work_minutes, est_total_minutes). Updated catalog header with metadata schema description. |
+| 0.6.0 | 2026-02-28 | Companion revision for Section 11 B integration and current workout-library packaging. |
+| 0.7.0 | 2026-06-29 | Added C20/FTP Development Track with TEST-C20, FTP-TTE, FTP-OU, FTP-FATIGUE, VO2-CEIL, and FUEL templates. Added extended metadata fields, C20 weekly pattern, 12-week specialization block, decision-matrix rows, and fueling practice guidance. |
 
 ---
 
