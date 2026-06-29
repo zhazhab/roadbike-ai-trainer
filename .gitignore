@@ -1,1 +1,6 @@
 .DS_Store
+
+# Local athlete data, credentials, generated sync output, and logs.
+data/
+.sync_config.json
+*.log

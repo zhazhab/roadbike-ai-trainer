@@ -73,7 +73,7 @@ class IntervalsPush:
     """Manage planned workouts on Intervals.icu calendar."""
 
     BASE_URL = "https://intervals.icu/api/v1"
-    VERSION = "0.5"
+    VERSION = "0.6"
 
     VALID_TYPES = {
         "Ride", "VirtualRide", "MountainBikeRide", "GravelRide", "EBikeRide",
@@ -226,7 +226,7 @@ class IntervalsPush:
         return True, None
 
     def _validate_description(self, description: str) -> Tuple[bool, Optional[str]]:
-        """Basic validation of Intervals.icu workout description syntax."""
+        """Validate Intervals.icu workout description syntax used by push.py."""
         lines = description.strip().split("\n")
         has_step = False
         for line in lines:
@@ -243,7 +243,178 @@ class IntervalsPush:
                 continue
         if not has_step:
             return False, "no step lines found (steps must start with -)"
+
+        try:
+            workout_doc = self._description_to_workout_doc(description)
+        except ValueError as e:
+            return False, str(e)
+        if not workout_doc.get("steps"):
+            return False, "description did not produce workout_doc steps"
         return True, None
+
+    @staticmethod
+    def _parse_duration_to_seconds(token: str) -> int:
+        """Parse Intervals-style duration tokens: 30s, 5m, 1h, 1h2m30s."""
+        token = token.strip().lower()
+        matches = re.findall(r'(\d+(?:\.\d+)?)(h|m|s)', token)
+        if not matches:
+            raise ValueError(f"invalid duration: {token}")
+
+        seconds = 0.0
+        for value, unit in matches:
+            n = float(value)
+            if unit == "h":
+                seconds += n * 3600
+            elif unit == "m":
+                seconds += n * 60
+            elif unit == "s":
+                seconds += n
+        return int(round(seconds))
+
+    @staticmethod
+    def _power_from_zone(zone: str) -> int:
+        """Map Coggan zone labels to conservative %FTP targets for ERG workouts."""
+        zone_targets = {
+            "Z1": 50,
+            "Z2": 65,
+            "Z3": 80,
+            "Z4": 95,
+            "Z5": 110,
+            "Z6": 130,
+            "Z7": 150,
+        }
+        z = zone.upper()
+        if z not in zone_targets:
+            raise ValueError(f"unsupported zone target: {zone}")
+        return zone_targets[z]
+
+    @classmethod
+    def _parse_power_target(cls, text: str) -> Tuple[int, Optional[int]]:
+        """Return (start/value, end) as %FTP. end is set for ranges/ramps."""
+        # Accept 50%-75%, 50-75%, 88-90%, 90%.
+        pct_range = re.search(
+            r'(\d+(?:\.\d+)?)\s*%?\s*-\s*(\d+(?:\.\d+)?)\s*%',
+            text,
+        )
+        if pct_range:
+            return (
+                int(round(float(pct_range.group(1)))),
+                int(round(float(pct_range.group(2)))),
+            )
+
+        pct_single = re.search(r'(\d+(?:\.\d+)?)\s*%', text)
+        if pct_single:
+            return int(round(float(pct_single.group(1)))), None
+
+        zone = re.search(r'\bZ([1-7])\b', text, re.IGNORECASE)
+        if zone:
+            return cls._power_from_zone(f"Z{zone.group(1)}"), None
+
+        raise ValueError(f"missing power target in step: {text}")
+
+    @classmethod
+    def _parse_step_line(cls, line: str) -> dict:
+        """Parse a dash-prefixed Intervals.icu step into workout_doc schema."""
+        raw = line.strip()
+        if raw.startswith("-"):
+            raw = raw[1:].strip()
+        if not raw:
+            raise ValueError("empty step line")
+
+        duration_match = re.match(
+            r'^(\d+(?:\.\d+)?(?:h|m|s)(?:\d+(?:\.\d+)?(?:h|m|s))*)\b\s*(.*)$',
+            raw,
+            re.IGNORECASE,
+        )
+        if not duration_match:
+            raise ValueError(f"missing duration in step: {line}")
+
+        duration = cls._parse_duration_to_seconds(duration_match.group(1))
+        remainder = duration_match.group(2).strip()
+        is_ramp = bool(re.search(r'\bramp\b', remainder, re.IGNORECASE))
+        start_power, end_power = cls._parse_power_target(remainder)
+
+        if is_ramp and end_power is None:
+            raise ValueError(f"ramp step must include a start-end power range: {line}")
+
+        if end_power is not None:
+            # Match the Intervals web UI payload. Zwift reads these structured
+            # %FTP steps more reliably than server-side description parsing.
+            step = {
+                "power": {"units": "%ftp", "start": start_power, "end": end_power},
+                "duration": duration,
+            }
+            if is_ramp:
+                step["ramp"] = True
+            return step
+
+        return {
+            "power": {"units": "%ftp", "value": start_power},
+            "duration": duration,
+        }
+
+    @classmethod
+    def _description_to_workout_doc(cls, description: str) -> dict:
+        """
+        Convert push.py's supported workout description syntax into workout_doc.
+
+        Intervals no longer reliably converts `description + workout_doc: {}`
+        into structured steps, so push.py emits native Intervals steps directly
+        for Zwift-compatible ERG workouts.
+        """
+        lines = [line.rstrip() for line in description.splitlines()]
+        steps: List[dict] = []
+        i = 0
+        while i < len(lines):
+            stripped = lines[i].strip()
+            if not stripped or stripped.upper().startswith("NOTE:"):
+                i += 1
+                continue
+
+            repeat = re.match(r'^(\d+)x\s*$', stripped, re.IGNORECASE)
+            if repeat:
+                reps = int(repeat.group(1))
+                block = []
+                i += 1
+                while i < len(lines):
+                    inner = lines[i].strip()
+                    if not inner:
+                        break
+                    if not inner.startswith("-"):
+                        raise ValueError(f"unsupported line inside repeat block: {inner}")
+                    block.append(cls._parse_step_line(inner))
+                    i += 1
+                if not block:
+                    raise ValueError(f"repeat block {reps}x has no steps")
+
+                block_duration = sum(int(step.get("duration", 0)) for step in block)
+                steps.append({
+                    "reps": reps,
+                    "text": f"{reps}x",
+                    "steps": block,
+                    "distance": 0,
+                    "duration": block_duration * reps,
+                })
+                continue
+
+            if stripped.startswith("-"):
+                steps.append(cls._parse_step_line(stripped))
+                i += 1
+                continue
+
+            # Free-text coach notes stay in description but are ignored here.
+            i += 1
+
+        duration = sum(int(step.get("duration", 0)) for step in steps)
+        if not steps:
+            return {}
+        return {
+            "steps": steps,
+            "locales": [],
+            "options": {},
+            "distance": 0,
+            "duration": duration,
+        }
 
     def _build_event(self, workout: dict) -> dict:
         """Convert a validated workout dict to an Intervals.icu event payload."""
@@ -257,6 +428,9 @@ class IntervalsPush:
         description = workout.get("description", "")
         if description:
             event["description"] = description
+            workout_doc = workout.get("workout_doc") or self._description_to_workout_doc(description)
+            if workout_doc:
+                event["workout_doc"] = workout_doc
 
         target = workout.get("target")
         if target:

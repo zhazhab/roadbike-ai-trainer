@@ -260,16 +260,13 @@ Provide `--activity-id` OR `--event-id`, not both.
 
 ### Intervals.icu Workout Syntax
 
-The `description` field uses Intervals.icu's native workout builder syntax. When provided, Intervals.icu parses the description into structured workout steps server-side.
+The `description` field uses Intervals.icu-style workout builder syntax. When provided, push.py parses the supported syntax itself and sends an explicit structured `workout_doc.steps` payload. This is required because Intervals.icu no longer reliably converts `description + workout_doc: {}` into structured workout steps for Zwift.
 
 #### Targets
 
-**Power:** `75%`, `220w`, `Z2`, `95-105%`, `MMP30s`, `MMP5m`
-**HR:** `70% HR`, `95% LTHR`, `Z2 HR`
-**Pace:** `60% Pace`, `Z2 Pace`, `5:00/km Pace`
-**Cadence:** append `90rpm` to any step
+**Power:** `75%`, `Z2`, `95-105%` (push.py emits `%ftp` workout steps)
 **Ramps:** `ramp 50%-75%`
-**Freeride:** step with no target (ERG off)
+**Cadence / HR / pace / MMP / freeride:** not emitted by push.py's explicit `workout_doc` parser yet; use percent-FTP power targets for Zwift-compatible ERG workouts.
 
 #### Duration
 
@@ -280,8 +277,11 @@ The `description` field uses Intervals.icu's native workout builder syntax. When
 #### Structure
 
 - Steps start with `-`
-- Blank lines required around repeat blocks
-- Text before duration becomes step cue
+- Repeat blocks use a standalone `Nx` line and are emitted as native Intervals `reps` groups
+- Free-text notes such as `NOTE:` are kept in `description` but ignored by `workout_doc` parsing
+- Steady power ranges such as `88-92%` are emitted as native `power.start`/`power.end` ranges
+- Ramp steps such as `ramp 50%-75%` are emitted as `ramp: true` with `power.start`/`power.end`
+- `workout_doc` includes root `duration`, `distance`, `locales`, and `options` fields matching Intervals.icu's web UI payload
 - Case-insensitive keywords
 - Nested repeats NOT supported
 
@@ -321,10 +321,11 @@ Maps Section 11 Workout Reference template IDs to Intervals.icu description synt
 ### What NOT To Do
 
 - **Don't use absolute watts** — use `%FTP` ranges so workouts stay correct if FTP changes
+- **Don't use HR, pace, MMP, cadence-only, or freeride targets for Zwift ERG uploads** — push.py only emits structured `%ftp` power steps today
 - **Don't use `m` for meters** — `m` means minutes. Use `km`, `mi`, or `mtr` for distance
 - **Don't nest repeats** — Intervals.icu doesn't support it
 - **Don't push past dates** — validation rejects them. Planned workouts are future events
-- **Don't skip blank lines around repeat blocks** — parsing breaks without them
+- **Don't skip the blank line after a repeat block when later steps should be outside the repeat**
 - **Don't update thresholds from estimates** — only from validated test results
 
 ### Troubleshooting
