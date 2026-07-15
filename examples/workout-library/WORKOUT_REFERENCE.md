@@ -1,8 +1,8 @@
 # Section 11 — Workout Reference Library
 
-**Version:** 0.7
+**Version:** 0.8
 **Companion to:** Section 11 B — AI Training Plan Protocol  
-**Last updated:** 2026-06-29
+**Last updated:** 2026-07-16
 
 ---
 
@@ -20,8 +20,10 @@ This document is a **library of session templates for inspiration**, not a rigid
 - **Zone references use the athlete's Intervals.icu zone configuration.** Power targets are expressed as zone ranges, not hardcoded %FTP values, because athlete zones are individually calibrated and update with fitness changes.
 - **This is a living catalog.** Athletes and coaches should adapt, extend, or replace templates to match individual needs, equipment, and sport demands.
 - **Templates are inspiration, not prescription.** The AI should use these as structural references, then adjust interval count, duration, rest periods, and intensity to match the athlete's current state. A Sweet Spot 3x15 might become 3x12 for a fatigued athlete or 3x18 for a fresh one approaching peak.
+- **SE-3 preserves the studied resistance component.** Its MDF-derived load, 5 × 7-cycle structure, twice-weekly frequency, 72-hour spacing, and 10-week duration must remain intact. The trial added that component to ongoing cycling; this library's integration into an individual week is a conservative extrapolation and must preserve primary normal-cadence work under Section 11's load rules.
 - **Optional/advanced templates are clearly marked.** Templates flagged as *(Optional)* or *(Advanced)* are not necessary for every athlete and should not be prescribed by default. The AI should only select these when the athlete's goals, phase, and readiness specifically warrant them.
 - **C20/FTP goals get a dedicated track.** When the athlete's explicit goal is raising 20-minute power, FTP, MLSS, or threshold TTE, prefer the C20/FTP Development Track (§1G) over generic sweet spot or VO2max templates. Road-race tactics, sprint repeatability, and criterium specificity remain secondary unless the athlete's stated event demands require them.
+- **Torque work requires a demonstrated reason.** Low cadence alone is not an adaptation target. Select a strength-endurance template only when event demands, repeated controlled-session evidence, or a measured force-cadence limitation supports it, and only after excluding pacing, gearing, fueling, heat, and recovery as the cause.
 
 ---
 
@@ -427,40 +429,108 @@ est_total_minutes: 52
 
 ---
 
-### 1F. Strength-Endurance — Low Cadence *(Optional)*
+### 1F. On-Bike Torque / Strength-Endurance *(Optional)*
 
-**Target adaptation:** Neuromuscular efficiency, torque production, type II fibre recruitment under sustained load.
+**Target adaptation:** Cycling-specific force production, tolerance of high crank torque, and the ability to express power when event cadence is constrained.
 
-> **Note:** These templates are optional. The evidence for low-cadence work improving endurance performance is mixed — some studies show neuromuscular efficiency gains, others show no advantage over normal-cadence work at the same power. These sessions trade some metabolic specificity for strength/torque development and should not crowd out normal-cadence structured work. Most useful for athletes targeting hilly courses or who identify muscular endurance on climbs as a limiter.
+Power is the product of crank torque and angular velocity. At the same power, reducing cadence raises torque per crank revolution. Mean crank torque can be estimated as `9.55 × power (W) ÷ cadence (rpm)`, but that estimate is not the same as joint torque, pedal force, or percentage of maximal dynamic force. This mechanical relationship makes torque capacity relevant to steep climbs, low-speed accelerations, starts, and some off-road demands. It does **not** mean that riding at the lowest possible cadence is automatically better training.
 
-#### SE-1: Low-Cadence Tempo *(Optional)*
+Maximal dynamic force (MDF) is obtained from a force/load-cadence assessment. It cannot be inferred from FTP, mean crank torque, preferred cadence, or a completed low-cadence interval.
+
+**Evidence boundary:** Traditional sustained low-cadence work is usually still a low-to-moderate relative force stimulus. Trials using 40–50 rpm at moderate or submaximal intensity have often found no performance or strength advantage, while newer trials using either maximal-intent pedal cycles at a measured high relative load or low cadence during genuinely high-intensity intervals have reported benefits. Therefore:
+
+- `SE-1` and `SE-2` are specificity and force-tolerance sessions, not substitutes for heavy resistance training.
+- `SE-3` is the clearest on-bike strength stimulus, but it is advanced and requires maximal-intent work with full recovery.
+- `SE-4` is a VO₂ session with a low-cadence constraint, not an extra strength day.
+- No `SE-*` template should crowd out the normal-cadence work needed for the athlete's primary performance goal.
+
+#### Scheduling Authority and Routing
+
+Section 11 B §4 is the sole authority for torque eligibility. It defines the input sources, operational screen, numeric thresholds, missing-data behavior, day-of execution gate, and success criteria. This library must not reinterpret a failed or inconclusive gate as permission to prescribe an `SE-*` session.
+
+Use only the template returned by the canonical routing rule:
+
+| Section 11 B §4 route | Eligible template |
+|---|---|
+| First qualifying event-demand or controlled-limiter exposure | `SE-1` |
+| Sustained climbing route after its required successful prerequisites | `SE-2` |
+| Valid MDF/load mapping plus measured-force or strength-substitution route | `SE-3` |
+| Low-cadence high-intensity route after its required successful prerequisites | `SE-4` |
+| Failed, missing, stale, or inconclusive gate | No `SE-*`; retain normal-cadence work or use `AE-5` for coordination |
+
+#### SE-1: Low-Cadence Force Tolerance *(Optional/Intro)*
 ```yaml
 id: SE-1
 domain: strength_endurance
 is_hard_session: true
-work_minutes: 55
-est_total_minutes: 85
+work_minutes: 36
+est_total_minutes: 70
 ```
-- **Zones:** Z3
-- **Structure:** 4–6 × 8 min at Z3, 50–60 rpm, with 4 min Z1 (normal cadence) between intervals
-- **Duration:** 45–65 min of work
-- **Coaching notes:** The low cadence forces higher torque per pedal stroke at the same power output, recruiting more type II muscle fibres. Knee stress is higher than normal-cadence work — any knee discomfort is an immediate stop signal. Keep upper body relaxed; the effort should feel muscular rather than cardiovascular.
-- **Position note:** Particularly effective executed in seated climbing position (70–80 rpm range acceptable for climbing simulation). Useful for athletes preparing for long alpine-style climbs.
-- **Select when:** Early-to-mid Base or Build phase for athletes targeting hilly events. Maximum once per week. Not a substitute for SS-1/SS-4 — use alongside, not instead of, normal-cadence threshold development.
+- **Zones:** Upper Z2 to low Z3
+- **Structure:** 4 × 6 min at 60–70 rpm, with 4 min Z1 at normal cadence between intervals
+- **Duration:** 36 min main set; 65–75 min total with WU/CD
+- **Coaching notes:** Keep power controlled and cadence deliberate. The goal is smooth seated force application, not cardiovascular exhaustion. Low cadence raises instantaneous crank and knee moments at a given power, but cumulative joint exposure also depends strongly on total power and duration. Stop immediately for joint or tendon pain. ERG mode is acceptable if the trainer remains stable at low cadence; otherwise use Resistance or Slope mode.
+- **Position note:** Use a stable seated climbing position with quiet hips and relaxed shoulders. Event-specific cadence up to 75 rpm is acceptable.
+- **Select when:** Section 11 B §4 routes the plan to `SE-1`. Use one session per week for two exposures before applying that section's success check and considering a need-specific branch.
 
 #### SE-2: Low-Cadence Sweet Spot *(Optional/Advanced)*
 ```yaml
 id: SE-2
 domain: strength_endurance
 is_hard_session: true
-work_minutes: 45
-est_total_minutes: 75
+work_minutes: 38
+est_total_minutes: 72
 ```
-- **Zones:** Low Z4 (Sweet Spot)
-- **Structure:** 3 × 10–12 min at low Z4, 55–65 rpm, with 5–6 min Z1 (normal cadence) between intervals
-- **Duration:** 40–50 min of work
-- **Coaching notes:** Combines the muscular demands of low-cadence work with sweet spot metabolic stress. More demanding than SE-1 on both muscular and cardiovascular systems. Only appropriate when the athlete has experience with both low-cadence work (SE-1) and sweet spot efforts (SS-1/SS-5) separately.
-- **Select when:** Mid-Build phase for athletes with established base in both SE-1 and SS-1. Readiness must be full "go" — do not prescribe on "modify" days. Maximum once per week, and this replaces (not supplements) one of the week's structured sessions.
+- **Zones:** Sweet Spot / low Z4
+- **Structure:** 3 × 8–10 min at 60–70 rpm, with 5–6 min Z1 at normal cadence between intervals
+- **Duration:** 34–42 min main set; 65–80 min total with WU/CD
+- **Coaching notes:** This combines normal sweet-spot metabolic stress with a low-cadence constraint. Power quality still governs the session: if power fades >5%, cadence becomes jerky, or joint discomfort appears, end the low-cadence work rather than grinding through it. This develops task-specific tolerance; it is not proven to replace heavy strength training.
+- **Select when:** Section 11 B §4 routes the plan to `SE-2` after the required sustained event demand and successful prerequisite sessions are recorded. It replaces one weekly structured session.
+
+#### SE-3: Maximal-Torque Pedal Cycles *(Optional/Advanced)*
+```yaml
+id: SE-3
+domain: strength_endurance
+is_hard_session: true
+work_minutes: 2
+est_total_minutes: 55
+```
+- **Zones:** Maximal-intent neuromuscular work; not prescribed from FTP zones. Use the tested gear/resistance that produces an average of ~70% of measured pedaling maximal dynamic force across the 7 cycles.
+- **Structure:** 5 × 7 maximal seated pedal cycles from a stationary or near-stationary start, with 4 min very easy spinning between sets
+- **Duration:** ~1–2 min total maximal work; 50–60 min total with extended WU, full recovery, and CD
+- **Coaching notes:** Every pedal cycle is forceful, but technique must remain controlled. Reproduce the documented test load on a constant ~6% outdoor slope or a calibrated Resistance/Slope/Free Ride setting. **Do not use ERG mode**: ERG controls power rather than the required resistance and can produce unsafe resistance changes near a stall. Both the pre-block MDF assessment and mapping must be no more than 7 days old; record the gear/resistance plus target average cadence at ~70% MDF. Monitor the 7-cycle average: when it differs from target by 5 rpm or more, change and record the gear/resistance before the next set or session; stop when the target cannot be reproduced. A generic slope, guessed gear, or the ability to complete 7 cycles does not establish 70% MDF. Without the required MDF mapping, do not perform `SE-3`; use `SE-1` for event-specific tolerance or retain off-bike strength work. Stop for pain, hip rocking, knee deviation, or loss of pedal control.
+- **Select when:** Section 11 B §4 routes the plan to `SE-3`. The studied resistance dose is 2 sessions/week for 10 weeks with at least 72 h between sessions, performed alongside the athletes' ongoing cycling. In this library it replaces two already-planned lower-body strength slots while retaining primary normal-cadence cycling under the normal hard-day ceiling; that individual weekly integration is conservative rather than directly validated. A shorter or once-weekly block is also unvalidated. The low TSS does not make it an easy session.
+
+#### SE-4: Low-Cadence VO₂ Intervals *(Optional/Advanced)*
+```yaml
+id: SE-4
+domain: strength_endurance
+is_hard_session: true
+work_minutes: 31
+est_total_minutes: 70
+```
+- **Zones:** Z5, using the athlete's normal VO₂ interval target rather than raising power to compensate for cadence
+- **Structure:** 4 × 4 min at 60–70 rpm, with 5 min Z1–Z2 at normal cadence between intervals
+- **Duration:** 31 min main set; 65–75 min total with VO₂-specific WU/CD
+- **Coaching notes:** This is first and foremost a VO₂ session. The low-cadence constraint increases per-stroke force but must not destroy interval quality. If power drops >5%, cadence becomes unstable, or the athlete cannot complete the normal VO₂ target, remove the cadence constraint or stop the set. The exact `4 × 4 min / 5 min recovery` template is a conservative, hypothesis-informed extrapolation; it has not been isolated and validated in a trial. The related small study used `4–6 × 4 min at 90–100% Pmax with 8 min active recovery` alongside low-cadence sprint intervals as part of a full 8-week program.
+- **Select when:** Section 11 B §4 routes the plan to `SE-4` after the required event demand and successful prerequisites are recorded. It replaces the week's VO₂ session and must not be paired with `SE-3` in the same microcycle.
+
+#### Torque Progression and Reassessment
+
+- **Default dose:** For `SE-1`, `SE-2`, and `SE-4`, use one session per week for a 3–6 week targeted block. Never add it as a third quality day.
+- **Entry:** Start with `SE-1` for two exposures. Progress only when both sessions meet the success definition in Section 11 B §4.
+- **Branch by need:** Progress to `SE-2` for sustained climbing tolerance or `SE-4` for low-cadence high-intensity specificity. `SE-3` is a separate MDF-gated, 10-week high-load resistance block, not a step in this mini-block.
+- **Reassess:** Repeat the same controlled climb/interval or force-cadence test after the block. Continue only if the relevant performance limiter improves without degrading normal-cadence quality.
+- **Exit:** Stop the block if the event-specific need disappears, normal-cadence quality declines, or pain/technique problems emerge.
+
+#### Evidence Notes
+
+- Pallares et al. (2025): 10 weeks of high-load on-bike resistance training (5 × 7 maximal pedal cycles at ~70% maximal dynamic force, twice weekly) improved strength and several performance/muscle-tendon outcomes similarly to matched squat training in well-trained male cyclists. The resistance work was added to an ongoing cycling routine (~10.9 h/week in the on-bike group), so replacing all cycling quality would not reproduce the study. [DOI: 10.5114/biolsport.2025.146790](https://doi.org/10.5114/biolsport.2025.146790)
+- de Pablos et al. (2026): a three-arm randomized trial found broader gains from high-relative-load, maximal-intent torque work, while 4-min low-load torque intervals produced limited changes. The authors still call for larger confirmation. [DOI: 10.1111/sms.70294](https://doi.org/10.1111/sms.70294)
+- Hebisz & Hebisz (2024): in 24 well-trained female cyclists, 50–70 rpm during a combined SIT/HIIT intervention produced larger improvements in VO₂max and maximal aerobic power than freely chosen cadence within an 8-week polarized program. The study did not isolate the practical `SE-4` template, and the small, specific sample limits generalization. [DOI: 10.1371/journal.pone.0311833](https://doi.org/10.1371/journal.pone.0311833)
+- Kristoffersen et al. (2014): 12 weeks of 5 × 6 min at 40 rpm and moderate intensity, twice weekly, did not improve aerobic capacity, performance, efficiency, or leg strength in trained veteran cyclists. [DOI: 10.3389/fphys.2014.00034](https://doi.org/10.3389/fphys.2014.00034)
+- Barranco-Gil et al. (2024): common cycling and traditional torque-training conditions remained below 54% of measured maximal dynamic force, supporting the distinction between merely riding slowly and applying a true high relative load. [DOI: 10.1016/j.jsams.2024.05.009](https://doi.org/10.1016/j.jsams.2024.05.009)
+- Ebbecke et al. (2026): crank torque best explained all modeled instantaneous knee moments; power best explained cumulative adduction/flexion loading, while cadence best explained cumulative extension loading. The study did not test training progression or injury risk. This library's progressive exposure and pain-based stopping rules are conservative policy, not findings from that study. [DOI: 10.1111/sms.70259](https://doi.org/10.1111/sms.70259)
 
 ---
 
@@ -769,6 +839,9 @@ All structured sessions (§1B, 1C, 1D, 1E, 1F, 1G) require warm-up and cool-down
 ### Intensity-Specific Warm-Up Modifications
 - **Before VO₂max sessions (VO2-1 through VO2-5):** Use WU-STD or WU-PROG (omitting the settling period) and extend to include 1 × 1 min at Z4 (threshold primer). Total WU: ~20–22 min.
 - **Before anaerobic/sprint sessions (AN-1 through AN-3):** Use WU-STD or WU-PROG and add 2 × 10 s Z6 sprints with full recovery after activation. Total WU: ~22–25 min.
+- **Before SE-1/SE-2:** Use WU-PROG, then add 2 × 30 s at the planned cadence and progressively heavier resistance with 2 min easy between. The primers are technical, not maximal.
+- **Before SE-3:** Use WU-STD, then add 3 × 5 seated pedal cycles at progressively heavier gearing with maximal-intent reserved for the final primer; recover 3 min easy between. Total WU: ~25–30 min. Do not use WU-SHORT.
+- **Before SE-4:** Follow the VO₂max modification above, then include 1 × 30 s at 60–70 rpm and target power to verify trainer stability and joint comfort before the main set.
 - **Before TEST-C20:** Use WU-STD, then add 3 × 1 min Z4/Z5 primers with 2–3 min easy between primers. Total WU: ~25–30 min. Do not use WU-SHORT before a C20 test.
 - **Before FTP-TTE / FTP-OU sessions:** WU-PROG is preferred because a gradual cardiovascular ramp improves threshold pacing. Use WU-STD when time is constrained.
 
@@ -811,7 +884,9 @@ These rules govern the placement of sessions within a microcycle (training week)
 - **Sprint/anaerobic work (AN-1 through AN-3)** should be placed early in the week when freshness is highest, or at least 48 h before any other hard session.
 - **Threshold sessions (TH-1, TH-2)** carry higher recovery cost than sweet spot — treat like VO₂max for sequencing purposes when placing alongside other hard sessions.
 - **C20/FTP templates (TEST-C20, FTP-TTE-*, FTP-OU-*, FTP-FATIGUE-*)** count as hard sessions except FUEL overlays. In C20 specialization, keep the default weekly ceiling at two quality days. Increase Z2 volume before adding a third hard day.
-- **Strength-endurance sessions (SE-1, SE-2)** generate significant muscular fatigue. Do not place before VO₂max work or long rides.
+- **Strength-endurance sessions (SE-1 through SE-4)** generate muscular or neuromuscular fatigue that TSS may understate. `SE-1`, `SE-2`, and `SE-4` default to one torque-specific session per week and should not precede VO₂max work or a long ride.
+- **SE-3** is the exception: its studied resistance dose uses two sessions per week for 10 weeks, with at least 72 h between them. It replaces two already-planned lower-body strength slots, not all normal-cadence cycling quality. Place both on the week's two hard days; pair one with the retained primary normal-cadence quality session, performing `SE-3` first with at least 6 h between sessions; add no other hard or heavy lower-body session. This weekly integration is a conservative extrapolation. `SE-3` counts as hard despite very little zone time.
+- **SE-4** occupies both the VO₂ and torque-specific slot. Do not pair it with `SE-3` or another VO₂ session in the same microcycle.
 
 ### 3.3 Long Ride Placement
 - Typically weekend (when training time is available).
@@ -922,6 +997,16 @@ Use the C20/FTP Development Track (§1G) when the athlete's explicit goal is rai
 
 Progression must stop or regress when either of these occurs: two consecutive failed threshold sessions, elevated readiness risk, or inability to fuel key sessions as planned. The next prescription should reduce TiZ, switch to tempo/sweet spot, or deload rather than increase intensity.
 
+### 4.6 Torque / Strength-Endurance Mini-Block
+
+Use this optional 3–6 week block for `SE-1`, `SE-2`, or `SE-4` only after Section 11 B §4 returns the corresponding route. It does not create a new hard day; one template replaces an existing quality slot.
+
+- **Weeks 1–2 — Familiarization:** `SE-1` once weekly. Keep the lower end of the power range and stop if the pedal stroke loses control.
+- **Weeks 3–5 — Need-specific branch:** Choose `SE-2` (sustained climbing) or `SE-4` (low-cadence high intensity) only when its canonical prerequisites pass. Do not rotate between them without a new qualifying reason.
+- **Week 6 — Reassess or deload:** Repeat the same controlled limiter test, return to normal-cadence work, or deload. Do not progress solely because the calendar reached week 6.
+
+`SE-3` does not belong to this mini-block. It uses the separate MDF-gated 10-week, twice-weekly resistance component in §1F, replacing already-planned strength work while ongoing cycling is retained. Session success and reassessment use the explicit criteria in Section 11 B §4; sore legs, higher TSS, or merely tolerating a lower cadence are not success criteria.
+
 ---
 
 ## 5. Interval Format Selection Guide
@@ -950,7 +1035,12 @@ When Section 11 determines a structured session is needed, use this guide to sel
 | C20 target with good fresh threshold but weak late-ride power | FTP-FATIGUE-1, then FTP-FATIGUE-2 | Train threshold expression under moderate fatigue |
 | Key session >75 min or late-block FTP work | FUEL-2 overlay | Protect workout quality through planned carbohydrate intake |
 | Long ride in C20/FTP block | FUEL-1 or AE-3 | Build aerobic base and fueling tolerance without extra intensity |
-| Hilly event preparation | SE-1 (low-cadence tempo) | Torque development *(optional)* |
+| First torque-specific exposure after decision gate | SE-1 (force tolerance) | Establish smooth low-cadence loading before harder variants |
+| Sustained steep-climb limiter after successful SE-1 | SE-2 (low-cadence sweet spot) | Event-specific force tolerance under steady metabolic load |
+| Valid MDF/load mapping plus Section 11 measured-force or strength-substitution route | SE-3 (maximal-torque cycles) | Evidence-matched high-relative-load block; unavailable without MDF calibration |
+| Established VO₂ fitness plus low-cadence high-intensity demand | SE-4 (low-cadence VO₂) | Combine VO₂ stimulus with event-specific per-stroke force |
+| Single sore-leg ride or cadence and power fade together | No torque session; diagnose first | Pacing, recovery, heat, fueling, or gearing are more likely first checks |
+| High-cadence coordination limiter with manageable power | AE-5 (cadence/technique) | The limiter is leg speed/control, not force production |
 | Race-week activation | MIX-2 (opener) | Prime without fatigue |
 | Peak phase sprint demands | AN-3 (progressive sprint sets) | Repeated sprint under fatigue |
 
@@ -970,6 +1060,7 @@ Before changing to a new format, progress within the current one:
 - FTP-TTE-1 (2×20) → FTP-TTE-2 (3×15) → FTP-TTE-3 (3×20) → FTP-TTE-4 (35–45 min continuous): C20/TTE progression
 - FTP-OU-1 → FTP-OU-2: over-under progression for C20 pacing resilience
 - FUEL-1 at comfortable intake → FUEL-1/FUEL-2 at 60–90 g/h: fueling tolerance progression; >90 g/h is not a default recreational target
+- SE-1 familiarization → one need-specific branch: SE-2 (sustained) or SE-4 (high intensity). SE-3 is a separate MDF-gated block, not part of this progression.
 - AN-2 (6 singles) → AN-3 (3×5 sets): volume and structure progression within anaerobic work
 - SS-1 → TH-1: intensity progression from sweet spot to threshold (only when FTP elevation is the specific target)
 
@@ -1030,6 +1121,7 @@ The catalog above is cycling-focused. For multi-sport or alternative-sport athle
 | 0.5.0 | 2026-02-25 | Added machine-readable YAML metadata to all 26 templates (id, domain, is_hard_session, work_minutes, est_total_minutes). Updated catalog header with metadata schema description. |
 | 0.6.0 | 2026-02-28 | Companion revision for Section 11 B integration and current workout-library packaging. |
 | 0.7.0 | 2026-06-29 | Added C20/FTP Development Track with TEST-C20, FTP-TTE, FTP-OU, FTP-FATIGUE, VO2-CEIL, and FUEL templates. Added extended metadata fields, C20 weekly pattern, 12-week specialization block, decision-matrix rows, and fueling practice guidance. |
+| 0.8.0 | 2026-07-16 | Rebuilt the optional torque track around current evidence. Linked to the canonical deterministic gate in Section 11 B §4, revised SE-1/SE-2, added MDF-gated SE-3 maximal-torque pedal cycles and an explicitly extrapolated SE-4 low-cadence VO₂ template, documented Zwift execution modes, and cited primary studies. |
 
 ---
 

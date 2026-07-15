@@ -4,6 +4,10 @@ Intervals.icu → GitHub/Local JSON Export
 Exports training data for LLM access.
 Supports both automated GitHub sync and manual local export.
 
+Version 3.113 - metadata.last_updated now emits an offset-aware UTC timestamp.
+  This removes machine-timezone ambiguity for the protocol's <24h freshness
+  checks while preserving the existing ISO-8601 field and meaning.
+
 Version 3.112 - Body weight signal block (current_status.weight): gated fields
   for block-level W/kg and weekly weight trend, all surfaced via a single
   _build_weight_signal helper. Failed-gate fields are absent from the JSON;
@@ -230,7 +234,7 @@ import requests
 import json
 import os
 import argparse
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 import base64
 import math
@@ -254,7 +258,7 @@ class IntervalsSync:
     HISTORY_FILE = "history.json"
     UPSTREAM_REPO = "CrankAddict/section-11"
     CHANGELOG_FILE = "changelog.json"
-    VERSION = "3.112"
+    VERSION = "3.113"
     INTERVALS_FILE = "intervals.json"
     ROUTES_FILE = "routes.json"
 
@@ -2655,7 +2659,7 @@ class IntervalsSync:
             },
             "metadata": {
                 "athlete_id": "REDACTED",
-                "last_updated": datetime.now().isoformat(),
+                "last_updated": datetime.now(timezone.utc).isoformat(),
                 "data_range_days": days_back,
                 "extended_range_days": days_for_acwr,
                 "version": self.VERSION

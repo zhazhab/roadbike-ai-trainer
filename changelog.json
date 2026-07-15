@@ -1,12 +1,14 @@
 {
-  "notification_id": "2026-06-30",
+  "notification_id": "2026-07-16",
   "changes": [
-    "— SECTION_11.md v11.44 + Workout Reference Library v0.7 + push.py v0.6 (2026-06-30) —",
-    "v11.44: C20/FTP Development Track Integration — Section 11 B now supports `specialization_mode: \"c20_ftp\"` for explicit C20, FTP, MLSS, or threshold-TTE goals, with readiness/load gates and audit metadata.",
-    "Workout Reference Library v0.7: Adds 13 C20/FTP templates: TEST-C20, FTP-TTE-1 through FTP-TTE-4, FTP-OU-1/2, FTP-FATIGUE-1/2, VO2-CEIL-1/2, and FUEL-1/2.",
-    "Workout planning rules: Adds the C20 12-week block map, 8–10 h/week pattern, warm-up rules, sequencing constraints, progression examples, and fueling-practice guidance.",
-    "push.py v0.6: Builds explicit Intervals.icu `workout_doc.steps` from supported percent-FTP workout descriptions so Zwift can see structured ERG workouts.",
-    "Local data safety: `.gitignore` now excludes `data/`, `.sync_config.json`, and local logs so athlete data and API keys stay out of Git.",
-    "Upgrade: pull fresh SECTION_11.md, SKILL.md, README.md, examples/workout-library/, examples/agentic/, manifest.json, and changelog.json."
+    "— SECTION_11.md v11.45 + Workout Reference Library v0.8 + sync.py v3.113 + push.py v0.6 (2026-07-16) —",
+    "v11.45: Evidence-Gated Torque Training — Section 11 B now requires an event demand, repeated controlled-session limiter, or measured force-cadence deficit before prescribing `SE-*`, plus full readiness and musculoskeletal/bike-fit safety gates.",
+    "Workout Reference Library v0.8: Expands the catalog to 41 templates, revises SE-1/SE-2, and adds SE-3 maximal-torque pedal cycles plus SE-4 low-cadence VO2 intervals.",
+    "Torque planning rules: A single sore-leg ride or cadence collapse is not a torque indication; high-cadence coordination maps to AE-5, while combined cadence/power fade requires pacing, recovery, heat, fueling, hydration, and gearing checks first.",
+    "Torque sequencing: SE-1/SE-2/SE-4 default to one replacement session per week for 3–6 weeks; MDF-gated SE-3 preserves the studied 10-week, twice-weekly resistance dose while labeling individual weekly integration as conservative extrapolation.",
+    "Torque audit: Every SE-* selection requires a non-null torque_gate object with gate results, dated evidence, safety confirmation, replaced slot, raw-stream screen records, and MDF/load-mapping references.",
+    "sync.py v3.113: Emits metadata.last_updated as offset-aware UTC so the torque gate's 24-hour freshness check is stable across local and GitHub runners.",
+    "Zwift execution: Sustained torque work may use ERG only when stable; maximal-torque SE-3 requires Resistance, Slope, or Free Ride mode and must not use ERG.",
+    "Upgrade: pull fresh SECTION_11.md, SKILL.md, README.md, examples/sync.py, examples/workout-library/, examples/agentic/, manifest.json, and changelog.json."
   ]
 }

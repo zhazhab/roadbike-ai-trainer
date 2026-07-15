@@ -268,6 +268,8 @@ The `description` field uses Intervals.icu-style workout builder syntax. When pr
 **Ramps:** `ramp 50%-75%`
 **Cadence / HR / pace / MMP / freeride:** not emitted by push.py's explicit `workout_doc` parser yet; use percent-FTP power targets for Zwift-compatible ERG workouts.
 
+**Torque template execution:** `SE-1`, `SE-2`, and `SE-4` can upload their power steps, but the prescribed cadence remains a manual cue because cadence targets are not emitted. `SE-3` maximal-torque pedal cycles cannot be represented safely as an ERG workout; execute them manually in Resistance, Slope, or Free Ride mode only when the fresh MDF-derived load mapping required by Section 11 B §4 can be reproduced. Monitor each set's average cadence and remap gear/resistance at a deviation of 5 rpm or more. Never convert `SE-3` to fixed-power ERG steps.
+
 #### Duration
 
 `5m` = 5 minutes, `30s` = 30 seconds, `1h2m30s` = 1 hour 2 min 30 sec
@@ -317,11 +319,17 @@ Maps Section 11 Workout Reference template IDs to Intervals.icu description synt
 | VO2-3 | VO2max 6x3 | `- 15m ramp 50%-75%\n\n6x\n- 3m 106-120%\n- 3m Z1\n\n- 10m 50%` |
 | AN-1 | Anaerobic 8x30s | `- 15m ramp 50%-75%\n\n8x\n- 30s 150%\n- 4m30s Z1\n\n- 10m 50%` |
 | AN-2 | Anaerobic 10x1m | `- 15m ramp 50%-75%\n\n10x\n- 1m 130-150%\n- 3m Z1\n\n- 10m 50%` |
+| SE-1 | Low-Cadence Force Tolerance 4x6 | `- 15m ramp 50%-75%\n\n4x\n- 6m 72-82%\n- 4m 50-55%\n\n- 10m 50%` |
+| SE-2 | Low-Cadence Sweet Spot 3x8 | `- 15m ramp 50%-75%\n\n3x\n- 8m 88-92%\n- 5m 50-55%\n\n- 10m 50%` |
+| SE-4 | Low-Cadence VO2 4x4 | `- 20m ramp 50%-80%\n\n4x\n- 4m 106-120%\n- 5m Z1\n\n- 10m 50%` |
+
+The three `SE-*` mappings above encode power only. Apply their 60–70 rpm cadence cue manually and use them only after Section 11 B §4 returns the matching route. `SE-3` is intentionally absent because fixed-power ERG steps cannot reproduce its MDF-derived load.
 
 ### What NOT To Do
 
 - **Don't use absolute watts** — use `%FTP` ranges so workouts stay correct if FTP changes
 - **Don't use HR, pace, MMP, cadence-only, or freeride targets for Zwift ERG uploads** — push.py only emits structured `%ftp` power steps today
+- **Don't encode SE-3 maximal-torque pedal cycles as ERG steps** — use manual Resistance, Slope, or Free Ride execution
 - **Don't use `m` for meters** — `m` means minutes. Use `km`, `mi`, or `mtr` for distance
 - **Don't nest repeats** — Intervals.icu doesn't support it
 - **Don't push past dates** — validation rejects them. Planned workouts are future events
@@ -368,6 +376,8 @@ python pull.py trace --activity-id i142557875 --out /tmp/ride.json
 ```
 
 The streams response is a JSON list of stream objects. **Important shape gotcha:** the `latlng` stream uses two parallel arrays — `data` holds latitudes, `data2` holds longitudes. This is **not** Strava's paired-array convention. See `EXTERNAL_APIS.md` for full details and the list of available stream types.
+
+**Torque limiter screen:** Section 11 B §4 requires `time`, `watts`, and `cadence` raw streams for its controlled screen. Fetch them with `pull.py trace --activity-id <id> --types time,watts,cadence`. Use the exact elapsed interval starts recorded during the screen, align stream arrays by index, and apply the protocol's 95% coverage and 5-second maximum-gap rules. `latest.json` and aggregate `intervals.json` values are not sufficient for this calculation.
 
 #### units — Show the athlete's unit preferences
 

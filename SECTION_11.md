@@ -1,10 +1,19 @@
 # Section 11 — AI Coach Protocol
 
-**Protocol Version:** 11.44
-**Last Updated:** 2026-06-30
+**Protocol Version:** 11.45
+**Last Updated:** 2026-07-16
 **License:** [MIT](https://opensource.org/licenses/MIT)
 
 ### Changelog
+
+**v11.45 — Evidence-Gated Torque Training:**
+- Strength-endurance planning now distinguishes sustained low-cadence specificity, maximal-intent high-load pedal cycles, and low-cadence VO₂ work instead of treating all low-cadence riding as one stimulus
+- New deterministic torque decision gate: prescribe `SE-*` only for an event demand, a repeated controlled-session limiter, or a measured force-cadence deficit, with full readiness and musculoskeletal/bike-fit safety gates
+- A single sore-leg ride or cadence collapse is not enough to prescribe torque work; high-cadence coordination maps to `AE-5`, while combined power/cadence fade requires pacing, recovery, heat, fueling, and gearing checks first
+- `SE-1`/`SE-2`/`SE-4` default to one replacement session per week for 3–6 weeks; MDF-gated `SE-3` preserves the studied resistance dose while its weekly integration is labeled a conservative extrapolation
+- Torque plans now carry a required `torque_gate` audit object with gate results, dated evidence, safety confirmation, replaced slot, raw-stream screen records, and MDF/load-mapping references
+- Workout Reference Library bumped to v0.8 with 41 templates: revised `SE-1`/`SE-2`, new `SE-3` maximal-torque pedal cycles, new `SE-4` low-cadence VO₂ intervals, primary-study citations, progression branches, and Zwift execution guidance
+- `sync.py` v3.113 makes `metadata.last_updated` offset-aware UTC so the 24-hour torque-data freshness gate is timezone-stable
 
 **v11.44 — C20/FTP Development Track Integration:**
 - New Section 11 B C20/FTP specialization exception: when the athlete's explicit goal is raising C20, FTP, MLSS, or threshold TTE, plans may enter `specialization_mode: "c20_ftp"` and use short threshold-emphasized or pyramidal blocks instead of strict 80/20, provided RI/HRV/ACWR/readiness/completion gates remain green
@@ -2912,6 +2921,50 @@ When `"specialization_mode": "c20_ftp"` is active, the two structured sessions s
 
 The weekly long ride remains Z2 by default. `FTP-FATIGUE-*` may replace the long ride or one structured session in late-block weeks, but it must not be added as a third hard day. Fueling-practice templates (`FUEL-*`) are overlays or endurance sessions, not extra intensity.
 
+**Torque / strength-endurance composition:**
+`SE-*` sessions are optional targeted tools, not a default specialization mode. This subsection is the canonical scheduling authority; the Workout Reference Library defines execution, but must not weaken or restate these gates.
+
+**Deterministic planning rule:**
+
+`torque_plan_eligible = phase_gate AND safety_gate AND slot_gate AND qualifying_need`
+
+All four terms must evaluate `true`. An absent, stale, or unconfirmed required input evaluates `false`; the AI must not infer a pass. For this subsection, `latest.json` is current only when `metadata.last_updated` is an offset-aware timestamp no more than 24 hours old at evaluation time (`sync.py` v3.113+ emits UTC). A missing UTC offset or older timestamp fails closed and requires a refresh. When the result is `false`, retain the normal-cadence session for the intended adaptation or use `AE-5` when the limiter is cadence coordination.
+
+**Phase, safety, and slot gates — all required:**
+- `phase_gate`: the planned session's `phase` metadata is Base or Build; its calendar date is not in Recovery, deload, taper, race week, or the 7 calendar days before `TEST-C20`, another FTP test, or an A-priority event in `race_calendar`
+- `safety_gate`: no more than 7 days before plan generation, the athlete explicitly reports no current knee, hip, Achilles, or lower-back pain and no unresolved bike-fit, gearing, or trainer-control problem; an unanswered or older safety check fails the gate
+- `slot_gate`: `SE-1`/`SE-2`/`SE-4` replaces one existing cycling quality slot. `SE-3` replaces two already-planned lower-body strength slots; if those slots do not exist, the AI must not auto-add them. Every route preserves the normal hard-day ceiling and spacing rules.
+
+**Qualifying need — at least one of these recorded signals required:**
+
+1. `event_demand`: a dated target route/course source, a prior event file from the preceding 180 days, or a dated athlete-provided event description records either (a) at least 5 continuous minutes or 15 cumulative minutes expected or observed below 75 rpm at Z3 or higher despite the lowest practical gear, or (b) at least 5 low-speed starts/steep ramps expected to force cadence below 60 rpm. The source, date, duration/count, and gearing constraint must be recorded; a generic statement that the route is hilly does not qualify.
+2. `controlled_limiter`: the operational screen below is positive twice within 42 days, with the screens 5–10 days apart and interval order reversed on the second screen.
+3. `measured_force_limiter`: a maximal dynamic force (MDF)/force-cadence assessment completed within 90 days on the same equipment and protocol either crosses a threshold declared before testing against the athlete's own baseline, or includes a qualified assessor's explicit force-limiter finding. The test protocol, date, result, threshold/finding, and load mapping must be recorded. Estimated mean crank torque from watts and cadence is not an MDF assessment.
+4. `strength_substitution`: the athlete explicitly chooses an on-bike high-load resistance block instead of an already-planned lower-body strength block, and a valid MDF assessment plus reproducible load mapping from the preceding item is available. This signal can route only to `SE-3`.
+
+**Controlled limiter screen (repository operational rule, not a validated diagnostic test):**
+- Run the screen indoors to control environment. At day 1 planning, snapshot `latest.json.current_status.thresholds.sports.cycling.ftp_indoor`; if null, use `.ftp`. Set `screen_target_watts = floor(0.825 × ftp_snapshot_watts + 0.5)` and predeclare it before riding. Both intervals on both days use exactly this watt target; if the FTP setting changes before day 2, discard day 1 and restart the pair. On each screen day, complete one 6-minute control interval at `screen_target_watts` and 85–95 rpm plus one 6-minute interval at the same prescribed watts and 60–70 rpm, separated by 6 minutes easy. Use control-first on day 1 and low-cadence-first on day 2. Record the FTP source path, FTP snapshot, target watts, activity id, and each interval's exact elapsed start second.
+- A screen day is valid only when current `latest.json.readiness_decision.recommendation` is exactly `"go"`, the athlete reconfirms the full `safety_gate`, and the prescribed warm-up finishes without pain, hip rocking, knee deviation, trainer instability, or stalling. No hard session may have occurred in the prior 48 hours; at least 30 g carbohydrate must have been consumed in the preceding 2 hours; and the athlete must report no pre-screen hunger. A named room thermometer/sensor must record ambient temperature <28 °C within 10 minutes before the first work interval; record source, timestamp, and value. Missing safety, warm-up, or environmental data invalidates the screen.
+- Calculations require Intervals.icu raw 1 Hz `time`, `watts`, and `cadence` streams fetched for the recorded activity id (`pull.py trace --types time,watts,cadence`). Align the three arrays by index and slice each 360-second interval from its recorded elapsed start. A slice is valid only with monotonically increasing time, at least 342 aligned non-null samples (95% coverage), and no contiguous missing-data gap >5 seconds. Missing/unavailable streams or a failed coverage rule makes the screen inconclusive.
+- Compute average power from all valid samples; compute power loss as `(first 180 s mean watts - second 180 s mean watts) / first 180 s mean watts × 100`; count one cadence-outside-range second for each valid 1 Hz sample below 60 or above 70 rpm. Record sample coverage, longest gap, both half means, loss percentage, interval-average power/cadence, and outside-range seconds in `screen_records`.
+- The signal is positive only when the control interval's average power finishes within ±5% of `screen_target_watts` on both days, while the low-cadence interval on both days has either power loss >5% or more than 60 cumulative seconds outside 60–70 rpm. On both days the athlete must also report local leg RPE ≥8/10 and breathing RPE ≤6/10 immediately after the low-cadence interval.
+- An interval ended early is invalid rather than positive. Missing raw-stream results, FTP source/snapshot/target, carbohydrate/hunger confirmation, environment record, or either RPE makes the screen inconclusive and `controlled_limiter = false`. This screen may authorize `SE-1`, but never supplies the MDF/load mapping required by `SE-3`.
+
+**Template routing after the planning rule passes:**
+- `SE-1`: use for a qualifying `event_demand` or `controlled_limiter`; it is the default first exposure
+- `SE-2`: require `event_demand` branch 1(a), two successful `SE-1` sessions, and two successful normal-cadence sweet-spot sessions in the prior 42 days
+- `SE-3`: require `measured_force_limiter` or `strength_substitution`, two already-planned lower-body strength slots, and both the MDF assessment and load mapping completed no more than 7 days before the first session. The mapping must record the gear/resistance and target average cadence that produced ~70% MDF across 7 cycles. Without these inputs, `SE-3` is unavailable. The study-matched resistance dose is 2 sessions/week for 10 weeks with at least 72 hours between sessions; it was performed alongside ongoing normal cycling, not instead of all cycling intensity. Weekly integration here is a conservative extrapolation: replace the two strength slots; place both `SE-3` sessions on the week's two hard days; pair one with the retained primary normal-cadence quality session, performing `SE-3` first with at least 6 hours between sessions; and add no other hard or heavy lower-body session. If this layout or current readiness cannot be satisfied, do not schedule the block. A shorter or once-weekly dose is also unvalidated.
+- `SE-4`: require a dated event source documenting at least 3 expected or observed 2–6 minute Z5-or-higher efforts below 75 rpm, plus two successful `SE-1` sessions and two successful normal-cadence VO₂ sessions in the prior 42 days. It replaces the week's VO₂ session and must not share a microcycle with `SE-3`.
+
+For the `SE-2`/`SE-4` prerequisites, a normal-cadence session is successful only when every work interval is completed inside its prescribed average-power target, first-to-last interval power loss is ≤5%, and no pain is reported during the session or in the following 48 hours. Missing interval or pain-response data means the prerequisite is not satisfied.
+
+**Day-of execution gate and success definition:**
+- Execute only when current `latest.json.readiness_decision.recommendation` is exactly `"go"`, the athlete reconfirms the safety gate, and the prescribed warm-up is completed without pain, hip rocking, knee deviation, trainer instability, or stalling. Missing current readiness data means use normal-cadence/easy work instead.
+- A successful `SE-1`, `SE-2`, or `SE-4` completes every work interval, keeps each interval's average power within its prescribed target, limits first-to-last interval power loss to ≤5%, spends at least 90% of work time inside the cadence range, and produces no pain during the session or in the following 48 hours.
+- A successful `SE-3` completes all 5 × 7 cycles at the documented MDF-derived load and keeps each set's average cadence within 5 rpm of the mapped target, without stalling, hip rocking, knee deviation, or pain during the session or in the following 48 hours. If average cadence deviates by 5 rpm or more, change the documented gear/resistance before the next set or session; stop `SE-3` when the target cannot be reproduced. TSS is not a substitute for this check.
+
+A single report of sore legs or cadence collapse never qualifies. If high cadence cannot be coordinated while power remains manageable, select `AE-5`. If power and cadence fade together, first investigate target intensity, accumulated fatigue, heat, hydration/fueling, and gearing. When normal-cadence work succeeds and there is no qualifying event demand, no torque session is required.
+
 ---
 
 ### 5 — Progression Integration
@@ -2939,12 +2992,15 @@ Every generated or modified plan must embed machine-readable metadata for audit 
   "specialization_mode": null,
   "target_metric": null,
   "session_template": "SS-5",
+  "torque_gate": null,
   "progression_vector": "duration",
   "load_variance": false,
   "validation_protocol": "URF_v5.1",
   "confidence": "high"
 }
 ```
+
+For any `SE-*` selection, `torque_gate` must be a non-null object. Required keys are `evaluated_at`, `eligible`, `phase_gate`, `safety_gate`, `safety_confirmed_at`, `slot_gate`, `replaced_slot`, `need_signal`, `evidence_refs`, `route`, `screen_records`, `mdf_test_date`, `mdf_mapping_date`, `target_cadence_rpm`, and `load_mapping_ref`. `need_signal` is one of `event_demand`, `controlled_limiter`, `measured_force_limiter`, or `strength_substitution`; non-applicable lists are empty and non-applicable scalar values are `null`. `evidence_refs` must identify the dated route, activity, athlete statement, or assessment used by Section 4. For `controlled_limiter`, each `screen_records` item must carry the FTP source path/snapshot/target watts, activity id, elapsed interval starts, readiness source timestamp/recommendation, safety/warm-up confirmation, carbohydrate and hunger confirmation, ambient source/timestamp/value, stream coverage/gap results, derived interval values, and both RPE values. If any required key or supporting reference is missing, set `eligible` to `false` and do not select `SE-*`.
 
 ---
 
@@ -2969,6 +3025,7 @@ When a plan requires a structured session (per Section 4), the AI must select fr
 **Selection rules:**
 - Match target adaptation (Sweet Spot, VO₂max, Endurance, etc.) to the session slot identified by the plan.
 - When `"specialization_mode": "c20_ftp"` is active, prefer templates whose `target_metric` matches `c20`, `ftp`, `tte`, `vo2_ceiling`, `fatigue_resistance`, or `fueling` before falling back to generic sweet spot / threshold / VO2max templates.
+- Select `SE-*` templates only after the Section 4 torque / strength-endurance decision gate passes. Record the complete `torque_gate` object in plan metadata; low cadence or sore legs alone are not valid reasons.
 - Use Section 11 A readiness outputs (TSB, RI, HRV trend) to choose the appropriate format variant and intensity level within that adaptation category.
 - Apply the Reference Library's session sequencing rules when placing sessions within the microcycle.
 - Warm-up and cool-down structures must follow the Reference Library's WU/CD protocols unless the athlete has documented personal preferences.
@@ -3193,6 +3250,7 @@ This subsection defines the formal self-validation and audit metadata structure 
 | `specialization_mode` | string/null | Optional specialization mode; currently `"c20_ftp"` or null                         |
 | `target_metric`       | string/null | Optional specialization target (`c20`, `ftp`, `tte`, `vo2_ceiling`, `fatigue_resistance`, `fueling`) |
 | `session_template`    | string  | Workout Reference Library template id selected for the key session                  |
+| `torque_gate`         | object/null | Required audit object for `SE-*`; null for non-torque plans. Carries gate booleans, safety timestamp, replaced slot, need signal, dated evidence references, route, raw-stream screen records, and MDF/load-mapping references. |
 | `progression_vector`  | string  | Active progression type (duration/intensity/environmental)                          |
 | `load_variance`       | boolean | Whether volume exceeds ±10% baseline                                                |
 | `validation_protocol` | string  | Framework version (e.g., "URF_v5.1")                                                |
