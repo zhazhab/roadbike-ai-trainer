@@ -340,6 +340,7 @@ The three `SE-*` mappings above encode power only. Apply their 60–70 rpm caden
 
 - **`403 Access denied`** — `ATHLETE_ID` is missing the leading `i` (e.g. `113739` instead of `i113739`), the API key is wrong, or the key doesn't belong to that athlete
 - **Error saying `requests` is not installed** — push.py is running under a Python interpreter that doesn't have `requests` installed; run `pip install requests` in the same env as `sync.py`, or invoke that env's Python explicitly (same applies to `pull.py`)
+- **Zwift still shows the old structure after an edit** — Intervals.icu only pushes a workout to Zwift when the event is created; an in-place update that changes the steps never reaches Zwift. push.py (v0.7+) detects step changes for events with an `external_id` and deletes the old event before the upsert, so a fresh event is created and re-sent. Fully quit and restart Zwift to pick it up
 - **Command appears to have done nothing** — preview is the default for all write operations. Add `--confirm` to actually write
 
 ---

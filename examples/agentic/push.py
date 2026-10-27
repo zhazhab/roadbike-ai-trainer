@@ -73,7 +73,7 @@ class IntervalsPush:
     """Manage planned workouts on Intervals.icu calendar."""
 
     BASE_URL = "https://intervals.icu/api/v1"
-    VERSION = "0.6"
+    VERSION = "0.7"
 
     VALID_TYPES = {
         "Ride", "VirtualRide", "MountainBikeRide", "GravelRide", "EBikeRide",
@@ -493,13 +493,65 @@ class IntervalsPush:
         events = [self._build_event(w) for w in workouts]
 
         try:
+            replaced = self._delete_restructured(events)
+        except Exception as e:
+            return {"success": False, "error": self._handle_error(e)}
+
+        try:
             response = self._post("events/bulk?upsert=true", events)
             results = []
             if isinstance(response, list):
                 results = [self._summarize_event(evt) for evt in response]
-            return {"success": True, "count": len(results), "events": results}
+            result = {"success": True, "count": len(results), "events": results}
+            if replaced:
+                result["replaced_event_ids"] = replaced
+            return result
         except Exception as e:
-            return {"success": False, "error": self._handle_error(e)}
+            error = self._handle_error(e)
+            if replaced:
+                error += f" (already deleted event ids {replaced} for re-creation; re-run push to restore them)"
+            return {"success": False, "error": error}
+
+    @staticmethod
+    def _step_signature(steps: list) -> list:
+        """Structure fields that devices like Zwift actually execute."""
+        sig = []
+        for s in steps or []:
+            sig.append((s.get("duration"), bool(s.get("ramp")), s.get("reps"),
+                        json.dumps(s.get("power"), sort_keys=True),
+                        IntervalsPush._step_signature(s.get("steps"))))
+        return sig
+
+    def _delete_restructured(self, events: list) -> list:
+        """
+        Delete existing events whose workout structure is about to change.
+
+        Intervals.icu sends a workout to Zwift when the event is created, but an
+        in-place upsert that changes the steps does not reach Zwift (the old
+        structure stays in the game). Deleting first makes the bulk upsert
+        create a fresh event, which is pushed to Zwift again.
+        """
+        by_ext = {e["external_id"]: e for e in events
+                  if e.get("external_id") and e.get("workout_doc", {}).get("steps")}
+        if not by_ext:
+            return []
+        dates = [datetime.fromisoformat(e["start_date_local"]).date() for e in by_ext.values()]
+        existing = self._get("events", params={
+            "oldest": (min(dates) - timedelta(days=14)).isoformat(),
+            "newest": (max(dates) + timedelta(days=14)).isoformat(),
+        }) or []
+        replaced = []
+        for old in existing:
+            new = by_ext.get(old.get("external_id"))
+            if not new or old.get("category") != "WORKOUT":
+                continue
+            old_steps = (old.get("workout_doc") or {}).get("steps")
+            if old_steps is None:
+                old_steps = (self._get(f"events/{old['id']}").get("workout_doc") or {}).get("steps")
+            if self._step_signature(old_steps) != self._step_signature(new["workout_doc"]["steps"]):
+                self._delete(f"events/{old['id']}")
+                replaced.append(old["id"])
+        return replaced
 
     def preview_push(self, workouts: list) -> dict:
         """Validate workouts and return preview without writing."""
